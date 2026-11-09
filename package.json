@@ -7,10 +7,10 @@
     "build": "turbo run build",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "db:generate": "pnpm --filter @supplement/db generate",
-    "db:migrate": "pnpm --filter @supplement/db migrate",
-    "db:deploy": "pnpm --filter @supplement/db deploy",
-    "db:seed": "pnpm --filter @supplement/db seed"
+    "db:generate": "pnpm --filter @supplement/db run generate",
+    "db:migrate": "pnpm --filter @supplement/db run migrate",
+    "db:deploy": "pnpm --filter @supplement/db run migrate:deploy",
+    "db:seed": "pnpm --filter @supplement/db run seed"
   },
   "devDependencies": {
     "turbo": "2.11.10",
