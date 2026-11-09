@@ -91,11 +91,49 @@ before publishing. Every change is recorded in the **Audit log** with before/aft
 - [ ] Check the **Sukat** trademark (MyIPO, IPOS, DJKI, IPOPHL) and secure domains and social handles. The name can be overridden with `NEXT_PUBLIC_APP_NAME`.
 - [ ] Disclose affiliate links if you add them (`rel="sponsored"` is already set on buy links).
 
-## Deploying
+## Deploying to Railway
 
-- Postgres: Neon, Supabase or any managed Postgres. Run `pnpm db:deploy` against it.
-- Apps: deploy `apps/web` and `apps/admin` as two Vercel projects (root directory = the app folder) with
-  `DATABASE_URL` and (admin) `AUTH_SECRET` set. Put the admin on its own domain and consider IP restrictions.
+The project has three parts: **Postgres**, **web** and **admin**. Both apps are built from the repository
+root with their own Dockerfile (`apps/web/Dockerfile`, `apps/admin/Dockerfile`). When a container starts,
+`scripts/start.sh` applies database migrations, seeds starter data if asked to, and starts the app on `$PORT`.
+
+1. **Create the project.** In Railway: **New Project → Deploy from GitHub repo →** `shiuh-yaw/supplement`.
+   The service it creates will be **web**, so rename it to `web`. Its first build may fail before step 3; that's expected.
+2. **Add the database:** **+ Create → Database → PostgreSQL**. Keep the service name `Postgres`.
+3. **Configure web** (service → *Variables*):
+
+   | Variable | Value |
+   |---|---|
+   | `RAILWAY_DOCKERFILE_PATH` | `apps/web/Dockerfile` |
+   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
+   | `NEXT_PUBLIC_APP_NAME` | `Sukat` (optional) |
+
+   Then *Settings → Networking → Generate Domain*. Leave *Root Directory* empty.
+4. **Add admin:** **+ Create → GitHub Repo →** the same repo. Rename it to `admin` and set:
+
+   | Variable | Value |
+   |---|---|
+   | `RAILWAY_DOCKERFILE_PATH` | `apps/admin/Dockerfile` |
+   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
+   | `AUTH_SECRET` | a random string of 32+ characters (`openssl rand -base64 32`) |
+   | `ADMIN_EMAIL` | your email |
+   | `ADMIN_PASSWORD` | a strong password, 12+ characters |
+   | `SEED_ON_DEPLOY` | `true` (first deploy only) |
+
+   Then generate a domain for it as well.
+5. **Deploy** both services. Check that you can sign in to the admin domain, then **delete `SEED_ON_DEPLOY`**.
+   The seed never overwrites your edits, but if the catalog is ever empty it would add the sample products again.
+6. **Optional:** to stop a change in one app from rebuilding the other, set *Settings → Watch Paths*:
+   web `/apps/web/**`, `/packages/**`, `/pnpm-lock.yaml`; admin `/apps/admin/**`, `/packages/**`, `/pnpm-lock.yaml`.
+
+Every push to `main` then redeploys automatically. The seed refuses to run in production with the example
+password, and the admin app won't start without an `AUTH_SECRET` of 32+ characters.
+
+Railway is replacing its older `railway.json` config files with `.railway/railway.ts`. This setup doesn't
+use either, so it isn't affected.
+
+Any other host that runs Dockerfiles works the same way. Build from the repository root with
+`docker build -f apps/web/Dockerfile .` and provide the same variables.
 
 ## Roadmap
 
