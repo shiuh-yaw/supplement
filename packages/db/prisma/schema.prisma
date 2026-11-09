@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN    // everything, incl. users
+  REVIEWER // qualified professional: approves & publishes rules
+  EDITOR   // manages catalog, drafts rules
+}
+
+enum EvidenceGrade {
+  A
+  B
+  C
+}
+
+enum RuleEffect {
+  RECOMMEND
+  CAUTION
+  BLOCK
+}
+
+enum RuleStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+model AdminUser {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  passwordHash String
+  role         Role       @default(EDITOR)
+  active       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  auditLogs    AuditLog[]
+  rulesCreated Rule[]     @relation("RuleCreatedBy")
+  rulesReviewed Rule[]    @relation("RuleReviewedBy")
+}
+
+model Supplement {
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  name          String
+  summary       String
+  evidenceGrade EvidenceGrade
+  /// DosingConfig from @supplement/engine
+  dosing        Json
+  timing        String
+  notes         String[]
+  /// [{ title, url }]
+  references    Json          @default("[]")
+  active        Boolean       @default(true)
+  sortOrder     Int           @default(0)
+  products      Product[]
+  rules         Rule[]
+  updatedAt     DateTime      @updatedAt
+}
+
+model Product {
+  id                   String         @id @default(cuid())
+  supplement           Supplement     @relation(fields: [supplementId], references: [id], onDelete: Cascade)
+  supplementId         String
+  brand                String
+  name                 String
+  form                 String
+  servingSizeG         Float
+  activePerServingG    Float
+  sugarPerServingG     Float          @default(0)
+  servingsPerContainer Int
+  allergens            String[]
+  vegan                Boolean        @default(false)
+  halalCertified       Boolean        @default(false)
+  /// e.g. JAKIM, MUI, MUIS — who certified it halal
+  halalBody            String?
+  certifications       String[]
+  /// Local registration / notification number (e.g. NPRA, HSA, BPOM), if any
+  registrationNo       String?
+  imageUrl             String?
+  notes                String?
+  active               Boolean        @default(true)
+  prices               ProductPrice[]
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  @@index([supplementId])
+}
+
+model ProductPrice {
+  id        String   @id @default(cuid())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  /// ISO country: MY, SG, ID, TH, PH, VN
+  country   String
+  currency  String
+  price     Float
+  url       String?
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, country])
+}
+
+model Rule {
+  id           String      @id @default(cuid())
+  /// Stable key used in tests and logs, e.g. "creatine-block-ckd"
+  key          String      @unique
+  name         String
+  /// null = global rule applying to every supplement
+  supplement   Supplement? @relation(fields: [supplementId], references: [id], onDelete: Cascade)
+  supplementId String?
+  effect       RuleEffect
+  /// ConditionNode JSON from @supplement/engine
+  condition    Json
+  message      String
+  priority     Int         @default(0)
+  status       RuleStatus  @default(DRAFT)
+  createdBy    AdminUser?  @relation("RuleCreatedBy", fields: [createdById], references: [id])
+  createdById  String?
+  reviewedBy   AdminUser?  @relation("RuleReviewedBy", fields: [reviewedById], references: [id])
+  reviewedById String?
+  reviewedAt   DateTime?
+  reviewNote   String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([status])
+}
+
+model AuditLog {
+  id        String     @id @default(cuid())
+  user      AdminUser? @relation(fields: [userId], references: [id])
+  userId    String?
+  action    String
+  entity    String
+  entityId  String
+  before    Json?
+  after     Json?
+  createdAt DateTime   @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+/// Anonymous usage stats only — no profile, labs or other personal data.
+model RecommendationEvent {
+  id          String   @id @default(cuid())
+  country     String
+  goal        String
+  recommended String[]
+  blocked     String[]
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
