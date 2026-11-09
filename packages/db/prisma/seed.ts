@@ -6,6 +6,9 @@ async function main() {
   // --- first admin -------------------------------------------------------------
   const email = process.env.ADMIN_EMAIL ?? "admin@example.com";
   const password = process.env.ADMIN_PASSWORD ?? "change-me-now";
+  if (process.env.NODE_ENV === "production" && (password === "change-me-now" || password.length < 12)) {
+    throw new Error("Set ADMIN_PASSWORD (12+ characters, not the example value) before seeding a production database.");
+  }
   const admin = await prisma.adminUser.upsert({
     where: { email },
     update: {},
