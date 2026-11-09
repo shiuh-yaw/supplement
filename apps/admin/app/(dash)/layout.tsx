@@ -18,7 +18,7 @@ export default async function DashLayout({ children }: { children: React.ReactNo
   return (
     <div className="min-h-screen md:flex">
       <aside className="border-b border-slate-200 bg-white md:min-h-screen md:w-56 md:border-r md:border-b-0">
-        <div className="p-4 text-lg font-bold text-brand-700">Backoffice</div>
+        <div className="p-4 text-lg font-bold text-brand-700">Sukat <span className="font-normal text-slate-500">Backoffice</span></div>
         <nav className="flex gap-1 overflow-x-auto px-2 pb-2 md:flex-col md:pb-0">
           {nav.map((n) => (
             <Link key={n.href} href={n.href} className="rounded-lg px-3 py-2 text-sm whitespace-nowrap text-slate-700 hover:bg-brand-50 hover:text-brand-700">

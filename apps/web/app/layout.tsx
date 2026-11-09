@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
-import { APP_NAME } from "@/lib/site";
+import { APP_NAME, TAGLINE } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: `${APP_NAME} — honest supplement guidance`,
+  title: `${APP_NAME} — ${TAGLINE}`,
   description:
     "Find out which protein, creatine and supplements suit your goals and health — brand-neutral, safety-first, for Southeast Asia.",
 };
@@ -15,8 +15,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen font-sans antialiased">
         <header className="border-b border-slate-200 bg-white">
           <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-            <Link href="/" className="text-lg font-bold text-brand-700">
-              {APP_NAME}
+            <Link href="/" className="flex items-baseline gap-2">
+              <span className="text-lg font-bold text-brand-700">{APP_NAME}</span>
+              <span className="hidden text-xs text-slate-500 sm:inline">{TAGLINE}</span>
             </Link>
             <Link href="/check" className="btn-primary">
               Start check

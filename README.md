@@ -1,4 +1,6 @@
-# Supplement recommendation platform (MVP)
+# Sukat: supplement recommendations, measured for you (MVP)
+
+*Sukat* means "measure" in Malay and Filipino.
 
 A brand-neutral, safety-first web app that helps people in **Southeast Asia** choose protein and creatine
 for their goals and health, plus a **backoffice** where your team manages the catalog, the evidence and
@@ -86,7 +88,7 @@ before publishing. Every change is recorded in the **Audit log** with before/aft
 - [ ] Legal review per market: health-data rules (Malaysia PDPA, Singapore PDPA, Indonesia PDP Law, Thailand PDPA,
       Philippines DPA, Vietnam PDPD) and supplement advertising rules.
 - [ ] Set a strong `AUTH_SECRET` and `ADMIN_PASSWORD`, and change the seeded admin's password.
-- [ ] Rename the app: set `NEXT_PUBLIC_APP_NAME` (the default name is a placeholder; check trademarks).
+- [ ] Check the **Sukat** trademark (MyIPO, IPOS, DJKI, IPOPHL) and secure domains and social handles. The name can be overridden with `NEXT_PUBLIC_APP_NAME`.
 - [ ] Disclose affiliate links if you add them (`rel="sponsored"` is already set on buy links).
 
 ## Deploying

@@ -8,7 +8,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <form onSubmit={action} className="card w-full max-w-sm space-y-4">
-        <h1 className="text-xl font-bold text-brand-700">Backoffice sign in</h1>
+        <h1 className="text-xl font-bold text-brand-700">Sukat backoffice sign in</h1>
         <div>
           <label className="label" htmlFor="email">Email</label>
           <input id="email" name="email" type="email" required autoComplete="username" className="input" />
