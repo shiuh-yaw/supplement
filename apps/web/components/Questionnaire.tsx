@@ -417,7 +417,7 @@ export function Questionnaire() {
               <p className="mt-2 text-xs text-slate-500">
                 {m.labsHint}
               </p>
-              <LabUpload onExtract={applyExtract} />
+              <LabUpload onExtract={applyExtract} country={form.country} />
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 {LAB_FIELDS.map((key) => {
                   const { label, hint } = m.labs[key];

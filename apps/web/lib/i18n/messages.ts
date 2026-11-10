@@ -1,8 +1,10 @@
 /**
- * Website text in English, Bahasa Melayu and Bahasa Indonesia.
- * `ms` and `id` are typed against `en`, so a missing or mismatched string fails the build.
+ * Website text in English, Bahasa Melayu, Bahasa Indonesia, Thai (messages-th.ts) and Vietnamese (messages-vi.ts).
+ * Every language is typed against `en`, so a missing or mismatched string fails the build.
  * Medical wording should be proofread by a native speaker.
  */
+import { th } from "./messages-th";
+import { vi } from "./messages-vi";
 import type { DoseSchedule } from "@supplement/engine";
 
 export const en = {
@@ -11,6 +13,7 @@ export const en = {
     startCheck: "Start check",
     myChecks: "My checks",
     language: "Language",
+    howItWorks: "How Sukat works",
     footer:
       "General education only — not medical advice. Always check with your doctor, dietitian or pharmacist. We don't sell supplements, and product rankings are never based on commission.",
     metaDescription:
@@ -114,6 +117,7 @@ export const en = {
     title: "Have your report? Upload it and we'll fill these in.",
     body: "PDF or a clear photo, up to 10 MB. It's read by Anthropic, our AI provider, only to find the numbers. We don't keep a copy. You'll check every number before anything is calculated.",
     button: "Upload lab report",
+    consent: "I agree that Sukat sends this file to Anthropic, an AI company in the United States, only to read the numbers. Sukat doesn't keep the file.",
     reading: "Reading your report…",
     notFound: "We couldn't find any of the tests we use in this report. You can still type numbers in below.",
     filled: (tests: string, date: string | null) => `✓ Filled in ${tests}${date ? ` from your report dated ${date}` : ""}.`,
@@ -133,6 +137,7 @@ export const en = {
       unreadable: "We couldn't read the results from this file. Please enter them by hand.",
       busy: "We're busy right now. Please try again in a minute.",
       failed: "We couldn't read the report right now. Please enter the numbers by hand.",
+      noConsent: "Please tick the box to agree before uploading.",
     },
   },
   results: {
@@ -149,6 +154,10 @@ export const en = {
     why: "Why",
     productsFit: "Products that fit you",
     commission: "Shop links may earn us a small commission at no cost to you. It never changes the ranking.",
+    howWeChoose: "How we choose",
+    regNo: "Reg. no.",
+    line: "Share on LINE",
+    requiredNotice: "Required notice",
     research: "Research",
     perMonth: (amount: string) => `≈ ${amount}/month at your dose`,
     score: (n: number) => `Match score ${n}/100`,
@@ -238,6 +247,61 @@ export const en = {
     daily: (names: string) => `Take: ${names}`,
     alternate: (names: string) => `Take (every other day): ${names}`,
   },
+  how: {
+    title: "How Sukat works",
+    lede: "What happens to your answers, how products are ranked, and how Sukat is paid for.",
+    sections: [
+      { id: "recommend", title: "How a recommendation is made", body: [
+        "Your answers go through safety rules first. Kidney or liver disease, pregnancy, some medicines and some lab results can hold a supplement back. When that happens we ask you to see a doctor, and safety always wins over any recommendation.",
+        "Then we check which supplements fit your goal, diet and results, and work out a dose. For protein we only suggest the gap between what you already eat and what your goal needs.",
+        "The rules are based on published research, such as the ISSN position stands, and are reviewed before they go live. Every change is logged.",
+      ] },
+      { id: "ranking", title: "How products are ranked", body: [
+        "We only show products sold in your country that match your allergies, diet and halal needs.",
+        "Each product is scored on independent third-party testing (35%), value per gram of the active ingredient (35%), formulation quality (15%) and fit for you, such as sugar and budget (15%).",
+        "Brands can't pay to be listed or to rank higher.",
+      ] },
+      { id: "money", title: "How Sukat makes money", body: [
+        "Sukat is free. Some \"Buy on…\" links are affiliate links: if you buy, the shop may pay us a small commission, at no extra cost to you.",
+        "The commission code is added only after you click. Recommendations and rankings are worked out without it, and our tests check that this stays true.",
+        "We don't sell supplements and we don't take payment from brands.",
+      ] },
+      { id: "privacy", title: "Your privacy", body: [
+        "We don't store your answers, health conditions or lab results on our server. Checks you save stay on this device.",
+        "Shared links carry your answers in the part of the link after #, which browsers never send to us.",
+        "If you upload a lab report, it's read once to fill in the form and isn't kept.",
+        "We keep anonymous counts only: country, goal, which supplements were suggested and which shop links were clicked.",
+      ] },
+      { id: "limits", title: "What Sukat is not", body: [
+        "Sukat is general education, not medical advice or a diagnosis. Talk to your doctor, dietitian or pharmacist before starting a supplement, especially if you have a health condition, are pregnant or take medicines.",
+      ] },
+    ],
+  },
+  account: {
+    title: "Sync across devices",
+    lede: "Optional. Without an account, your saved checks stay on this device only.",
+    store: "If you create an account, Sukat stores your saved checks (your answers, including health conditions and lab results, and the suggestions) encrypted on its server in Singapore. It stores no name, email or password: you sign in with a passkey, using your fingerprint, face or phone PIN.",
+    rights: "You can download everything or delete your account at any time. Deleting is immediate and permanent.",
+    consent: "I agree that Sukat stores my saved checks, including health information, encrypted on its server in Singapore, so I can see them on my other devices.",
+    create: "Create account with a passkey",
+    signIn: "Sign in with a passkey",
+    have: "Already have an account on another device?",
+    noPasskey: "This browser doesn't support passkeys. Try an up-to-date Chrome, Safari or Edge.",
+    cancelled: "The passkey was cancelled or timed out. Please try again.",
+    signedIn: "Signed in. Checks in your account:",
+    sync: "Sync this device",
+    syncing: "Syncing…",
+    synced: (added: number, total: number) => `Synced. ${added} added to your account; ${total} checks on this device now.`,
+    download: "Download my data",
+    signOut: "Sign out",
+    delete: "Delete my account",
+    confirm: "Delete your account and every check saved in it? This can't be undone. Checks on this device stay.",
+    yes: "Yes, delete everything",
+    cancel: "Cancel",
+    deleted: "Your account and its data have been deleted.",
+    error: "Something went wrong. Please try again.",
+    link: "Sync across devices",
+  },
 };
 
 export type Messages = typeof en;
@@ -248,6 +312,7 @@ export const ms: Messages = {
     startCheck: "Mula semak",
     myChecks: "Semakan saya",
     language: "Bahasa",
+    howItWorks: "Cara Sukat berfungsi",
     footer:
       "Maklumat pendidikan umum sahaja — bukan nasihat perubatan. Sentiasa rujuk doktor, pakar diet atau ahli farmasi anda. Kami tidak menjual suplemen, dan kedudukan produk tidak pernah berdasarkan komisen.",
     metaDescription:
@@ -351,6 +416,7 @@ export const ms: Messages = {
     title: "Ada laporan anda? Muat naik dan kami akan isikan untuk anda.",
     body: "PDF atau gambar yang jelas, sehingga 10 MB. Ia dibaca oleh Anthropic, penyedia AI kami, hanya untuk mencari angka. Kami tidak menyimpan salinan. Anda akan menyemak setiap angka sebelum apa-apa dikira.",
     button: "Muat naik laporan makmal",
+    consent: "Saya bersetuju Sukat menghantar fail ini kepada Anthropic, syarikat AI di Amerika Syarikat, hanya untuk membaca angka. Sukat tidak menyimpan fail ini.",
     reading: "Sedang membaca laporan anda…",
     notFound: "Kami tidak menjumpai ujian yang kami gunakan dalam laporan ini. Anda masih boleh menaip angka di bawah.",
     filled: (tests: string, date: string | null) => `✓ ${tests} telah diisi${date ? ` daripada laporan anda bertarikh ${date}` : ""}.`,
@@ -370,6 +436,7 @@ export const ms: Messages = {
       unreadable: "Kami tidak dapat membaca keputusan daripada fail ini. Sila masukkan secara manual.",
       busy: "Kami sibuk sekarang. Sila cuba lagi sebentar lagi.",
       failed: "Kami tidak dapat membaca laporan sekarang. Sila masukkan angka secara manual.",
+      noConsent: "Sila tandakan kotak untuk bersetuju sebelum memuat naik.",
     },
   },
   results: {
@@ -386,6 +453,10 @@ export const ms: Messages = {
     why: "Sebab",
     productsFit: "Produk yang sesuai untuk anda",
     commission: "Pautan kedai mungkin memberi kami komisen kecil tanpa kos kepada anda. Ia tidak pernah mengubah kedudukan.",
+    howWeChoose: "Cara kami memilih",
+    regNo: "No. pendaftaran",
+    line: "Kongsi di LINE",
+    requiredNotice: "Notis wajib",
     research: "Kajian",
     perMonth: (amount: string) => `≈ ${amount}/bulan pada dos anda`,
     score: (n: number) => `Skor padanan ${n}/100`,
@@ -475,6 +546,61 @@ export const ms: Messages = {
     daily: (names: string) => `Ambil: ${names}`,
     alternate: (names: string) => `Ambil (selang sehari): ${names}`,
   },
+  how: {
+    title: "Cara Sukat berfungsi",
+    lede: "Apa yang berlaku kepada jawapan anda, cara produk disusun, dan cara Sukat dibiayai.",
+    sections: [
+      { id: "recommend", title: "Cara cadangan dibuat", body: [
+        "Jawapan anda melalui peraturan keselamatan terlebih dahulu. Penyakit buah pinggang atau hati, kehamilan, sesetengah ubat dan sesetengah keputusan ujian makmal boleh menghalang sesuatu suplemen. Jika ini berlaku, kami minta anda berjumpa doktor, dan keselamatan sentiasa mengatasi sebarang cadangan.",
+        "Kemudian kami semak suplemen yang sesuai dengan matlamat, diet dan keputusan anda, lalu mengira dos. Untuk protein, kami hanya mencadangkan jurang antara apa yang sudah anda makan dan keperluan matlamat anda.",
+        "Peraturan ini berdasarkan penyelidikan yang diterbitkan, seperti pendirian rasmi ISSN, dan disemak sebelum digunakan. Setiap perubahan direkodkan.",
+      ] },
+      { id: "ranking", title: "Cara produk disusun", body: [
+        "Kami hanya menunjukkan produk yang dijual di negara anda dan sesuai dengan alahan, diet dan keperluan halal anda.",
+        "Setiap produk dinilai berdasarkan ujian pihak ketiga yang bebas (35%), nilai bagi setiap gram bahan aktif (35%), kualiti formulasi (15%) dan kesesuaian untuk anda, seperti gula dan bajet (15%).",
+        "Jenama tidak boleh membayar untuk disenaraikan atau diletakkan lebih tinggi.",
+      ] },
+      { id: "money", title: "Cara Sukat memperoleh pendapatan", body: [
+        "Sukat adalah percuma. Sesetengah pautan \"Beli di…\" ialah pautan afiliat: jika anda membeli, kedai mungkin membayar kami komisen kecil tanpa kos tambahan kepada anda.",
+        "Kod komisen hanya ditambah selepas anda klik. Cadangan dan susunan produk dikira tanpanya, dan ujian kami memastikan perkara ini kekal begitu.",
+        "Kami tidak menjual suplemen dan tidak menerima bayaran daripada jenama.",
+      ] },
+      { id: "privacy", title: "Privasi anda", body: [
+        "Kami tidak menyimpan jawapan, keadaan kesihatan atau keputusan ujian makmal anda di pelayan kami. Semakan yang anda simpan kekal pada peranti ini.",
+        "Pautan yang dikongsi membawa jawapan anda dalam bahagian pautan selepas #, yang tidak pernah dihantar oleh pelayar kepada kami.",
+        "Jika anda memuat naik laporan makmal, ia dibaca sekali untuk mengisi borang dan tidak disimpan.",
+        "Kami hanya menyimpan kiraan tanpa nama: negara, matlamat, suplemen yang dicadangkan dan pautan kedai yang diklik.",
+      ] },
+      { id: "limits", title: "Apa yang Sukat bukan", body: [
+        "Sukat ialah maklumat pendidikan umum, bukan nasihat perubatan atau diagnosis. Berbincang dengan doktor, pakar diet atau ahli farmasi anda sebelum memulakan suplemen, terutamanya jika anda mempunyai masalah kesihatan, sedang hamil atau mengambil ubat.",
+      ] },
+    ],
+  },
+  account: {
+    title: "Segerak merentas peranti",
+    lede: "Pilihan. Tanpa akaun, semakan yang anda simpan kekal pada peranti ini sahaja.",
+    store: "Jika anda membuat akaun, Sukat menyimpan semakan anda (jawapan anda, termasuk keadaan kesihatan dan keputusan ujian makmal, serta cadangan) secara disulitkan di pelayannya di Singapura. Sukat tidak menyimpan nama, e-mel atau kata laluan: anda log masuk dengan kunci laluan (passkey) menggunakan cap jari, wajah atau PIN telefon anda.",
+    rights: "Anda boleh memuat turun semua data atau memadam akaun anda pada bila-bila masa. Pemadaman berlaku serta-merta dan kekal.",
+    consent: "Saya bersetuju Sukat menyimpan semakan saya, termasuk maklumat kesihatan, secara disulitkan di pelayannya di Singapura supaya saya boleh melihatnya pada peranti lain.",
+    create: "Buat akaun dengan kunci laluan",
+    signIn: "Log masuk dengan kunci laluan",
+    have: "Sudah ada akaun pada peranti lain?",
+    noPasskey: "Pelayar ini tidak menyokong kunci laluan. Cuba Chrome, Safari atau Edge versi terkini.",
+    cancelled: "Kunci laluan dibatalkan atau tamat masa. Sila cuba lagi.",
+    signedIn: "Telah log masuk. Semakan dalam akaun anda:",
+    sync: "Segerakkan peranti ini",
+    syncing: "Sedang menyegerak…",
+    synced: (added: number, total: number) => `Selesai. ${added} ditambah ke akaun anda; kini ${total} semakan pada peranti ini.`,
+    download: "Muat turun data saya",
+    signOut: "Log keluar",
+    delete: "Padam akaun saya",
+    confirm: "Padam akaun anda dan setiap semakan di dalamnya? Tindakan ini tidak boleh dibatalkan. Semakan pada peranti ini kekal.",
+    yes: "Ya, padam semuanya",
+    cancel: "Batal",
+    deleted: "Akaun dan data anda telah dipadam.",
+    error: "Berlaku ralat. Sila cuba lagi.",
+    link: "Segerak merentas peranti",
+  },
 };
 
 export const id: Messages = {
@@ -483,6 +609,7 @@ export const id: Messages = {
     startCheck: "Mulai cek",
     myChecks: "Cek saya",
     language: "Bahasa",
+    howItWorks: "Cara kerja Sukat",
     footer:
       "Hanya edukasi umum — bukan saran medis. Selalu konsultasikan dengan dokter, ahli gizi, atau apoteker Anda. Kami tidak menjual suplemen, dan peringkat produk tidak pernah didasarkan pada komisi.",
     metaDescription:
@@ -586,6 +713,7 @@ export const id: Messages = {
     title: "Punya hasil lab? Unggah dan kami akan mengisinya.",
     body: "PDF atau foto yang jelas, maksimal 10 MB. File dibaca oleh Anthropic, penyedia AI kami, hanya untuk menemukan angka. Kami tidak menyimpan salinannya. Anda akan memeriksa setiap angka sebelum apa pun dihitung.",
     button: "Unggah hasil lab",
+    consent: "Saya setuju Sukat mengirim berkas ini ke Anthropic, perusahaan AI di Amerika Serikat, hanya untuk membaca angka. Sukat tidak menyimpan berkas ini.",
     reading: "Membaca hasil lab Anda…",
     notFound: "Kami tidak menemukan tes yang kami gunakan di hasil lab ini. Anda tetap bisa mengetik angka di bawah.",
     filled: (tests: string, date: string | null) => `✓ ${tests} sudah diisi${date ? ` dari hasil lab tanggal ${date}` : ""}.`,
@@ -605,6 +733,7 @@ export const id: Messages = {
       unreadable: "Kami tidak bisa membaca hasil dari file ini. Mohon masukkan secara manual.",
       busy: "Kami sedang sibuk. Silakan coba lagi sebentar lagi.",
       failed: "Kami tidak bisa membaca hasil lab saat ini. Mohon masukkan angka secara manual.",
+      noConsent: "Centang kotak persetujuan sebelum mengunggah.",
     },
   },
   results: {
@@ -621,6 +750,10 @@ export const id: Messages = {
     why: "Alasan",
     productsFit: "Produk yang cocok untuk Anda",
     commission: "Tautan toko mungkin memberi kami komisi kecil tanpa biaya untuk Anda. Ini tidak pernah mengubah peringkat.",
+    howWeChoose: "Cara kami memilih",
+    regNo: "No. registrasi",
+    line: "Bagikan di LINE",
+    requiredNotice: "Pemberitahuan wajib",
     research: "Penelitian",
     perMonth: (amount: string) => `≈ ${amount}/bulan sesuai dosis Anda`,
     score: (n: number) => `Skor kecocokan ${n}/100`,
@@ -710,9 +843,64 @@ export const id: Messages = {
     daily: (names: string) => `Konsumsi: ${names}`,
     alternate: (names: string) => `Konsumsi (dua hari sekali): ${names}`,
   },
+  how: {
+    title: "Cara kerja Sukat",
+    lede: "Apa yang terjadi pada jawaban Anda, bagaimana produk diurutkan, dan bagaimana Sukat dibiayai.",
+    sections: [
+      { id: "recommend", title: "Bagaimana rekomendasi dibuat", body: [
+        "Jawaban Anda diperiksa dengan aturan keamanan terlebih dahulu. Penyakit ginjal atau hati, kehamilan, beberapa obat dan beberapa hasil lab dapat menahan suatu suplemen. Jika itu terjadi, kami meminta Anda menemui dokter, dan keamanan selalu didahulukan di atas rekomendasi apa pun.",
+        "Lalu kami memeriksa suplemen mana yang cocok dengan tujuan, pola makan dan hasil lab Anda, lalu menghitung dosisnya. Untuk protein, kami hanya menyarankan selisih antara asupan Anda saat ini dan kebutuhan tujuan Anda.",
+        "Aturan ini didasarkan pada penelitian yang telah diterbitkan, seperti pernyataan sikap ISSN, dan ditinjau sebelum diberlakukan. Setiap perubahan dicatat.",
+      ] },
+      { id: "ranking", title: "Bagaimana produk diurutkan", body: [
+        "Kami hanya menampilkan produk yang dijual di negara Anda dan sesuai dengan alergi, pola makan dan kebutuhan halal Anda.",
+        "Setiap produk dinilai berdasarkan pengujian pihak ketiga yang independen (35%), nilai per gram bahan aktif (35%), kualitas formulasi (15%) dan kecocokan untuk Anda, seperti gula dan anggaran (15%).",
+        "Merek tidak dapat membayar agar dicantumkan atau diurutkan lebih tinggi.",
+      ] },
+      { id: "money", title: "Bagaimana Sukat mendapat pemasukan", body: [
+        "Sukat gratis. Beberapa tautan \"Beli di…\" adalah tautan afiliasi: jika Anda membeli, toko mungkin membayar kami komisi kecil tanpa biaya tambahan untuk Anda.",
+        "Kode komisi baru ditambahkan setelah Anda mengklik. Rekomendasi dan urutan produk dihitung tanpanya, dan pengujian kami memastikan hal ini tetap berlaku.",
+        "Kami tidak menjual suplemen dan tidak menerima bayaran dari merek.",
+      ] },
+      { id: "privacy", title: "Privasi Anda", body: [
+        "Kami tidak menyimpan jawaban, kondisi kesehatan, atau hasil lab Anda di server kami. Pemeriksaan yang Anda simpan tetap ada di perangkat ini.",
+        "Tautan yang dibagikan membawa jawaban Anda di bagian tautan setelah #, yang tidak pernah dikirim browser kepada kami.",
+        "Jika Anda mengunggah hasil lab, berkas itu dibaca sekali untuk mengisi formulir dan tidak disimpan.",
+        "Kami hanya menyimpan hitungan anonim: negara, tujuan, suplemen yang disarankan, dan tautan toko yang diklik.",
+      ] },
+      { id: "limits", title: "Apa yang bukan Sukat", body: [
+        "Sukat adalah edukasi umum, bukan nasihat medis atau diagnosis. Bicarakan dengan dokter, ahli gizi atau apoteker Anda sebelum mulai mengonsumsi suplemen, terutama jika Anda memiliki kondisi kesehatan, sedang hamil atau minum obat.",
+      ] },
+    ],
+  },
+  account: {
+    title: "Sinkronkan antarperangkat",
+    lede: "Opsional. Tanpa akun, pemeriksaan yang Anda simpan hanya ada di perangkat ini.",
+    store: "Jika Anda membuat akun, Sukat menyimpan pemeriksaan Anda (jawaban Anda, termasuk kondisi kesehatan dan hasil lab, serta sarannya) dalam bentuk terenkripsi di server di Singapura. Sukat tidak menyimpan nama, email, atau kata sandi: Anda masuk dengan passkey, memakai sidik jari, wajah, atau PIN ponsel.",
+    rights: "Anda dapat mengunduh semua data atau menghapus akun kapan saja. Penghapusan langsung berlaku dan permanen.",
+    consent: "Saya setuju Sukat menyimpan pemeriksaan saya, termasuk informasi kesehatan, dalam bentuk terenkripsi di server di Singapura agar saya dapat melihatnya di perangkat lain.",
+    create: "Buat akun dengan passkey",
+    signIn: "Masuk dengan passkey",
+    have: "Sudah punya akun di perangkat lain?",
+    noPasskey: "Browser ini tidak mendukung passkey. Coba Chrome, Safari, atau Edge versi terbaru.",
+    cancelled: "Passkey dibatalkan atau waktunya habis. Silakan coba lagi.",
+    signedIn: "Sudah masuk. Pemeriksaan di akun Anda:",
+    sync: "Sinkronkan perangkat ini",
+    syncing: "Menyinkronkan…",
+    synced: (added: number, total: number) => `Selesai. ${added} ditambahkan ke akun Anda; kini ada ${total} pemeriksaan di perangkat ini.`,
+    download: "Unduh data saya",
+    signOut: "Keluar",
+    delete: "Hapus akun saya",
+    confirm: "Hapus akun Anda beserta semua pemeriksaan di dalamnya? Tindakan ini tidak dapat dibatalkan. Pemeriksaan di perangkat ini tetap ada.",
+    yes: "Ya, hapus semuanya",
+    cancel: "Batal",
+    deleted: "Akun dan data Anda telah dihapus.",
+    error: "Terjadi kesalahan. Silakan coba lagi.",
+    link: "Sinkronkan antarperangkat",
+  },
 };
 
 import type { Locale } from "@supplement/engine";
-export const MESSAGES: Record<Locale, Messages> = { en, ms, id };
+export const MESSAGES: Record<Locale, Messages> = { en, ms, id, th, vi };
 /** BCP 47 tags for number and date formatting. */
-export const LOCALE_TAGS: Record<Locale, string> = { en: "en-MY", ms: "ms-MY", id: "id-ID" };
+export const LOCALE_TAGS: Record<Locale, string> = { en: "en-MY", ms: "ms-MY", id: "id-ID", th: "th-TH", vi: "vi-VN" };

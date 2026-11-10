@@ -14,6 +14,7 @@ import {
 } from "@supplement/engine";
 import { APP_NAME } from "@/lib/site";
 import { marketplaceLabel, shareUrl } from "@/lib/share";
+import { COUNTRY_PRODUCT_NOTICES } from "@/lib/country-notices";
 import { saveCheck } from "@/lib/history";
 import { buildReminderIcs } from "@/lib/reminders";
 import { useI18n } from "@/lib/i18n/context";
@@ -74,6 +75,11 @@ function ProductRow({ ranked, rank, dose, ingredient }: { ranked: RankedProduct;
         {m.take} <strong>{servings} {one ? m.serving : m.servings} {m.schedule[dose.schedule]}</strong>
         <span className="text-slate-600">{m.oneServingHas(active)}</span>
       </p>
+      {product.registrationNo && (
+        <p className="mt-1 text-xs text-slate-500">
+          {m.regNo} <span className="font-mono">{product.registrationNo}</span>
+        </p>
+      )}
       <ul className="mt-2 flex flex-wrap gap-1.5">
         {ranked.reasons.map((r) => (
           <li key={r} className="rounded-lg bg-slate-100 px-2 py-0.5 text-xs text-slate-700">{r}</li>
@@ -82,7 +88,7 @@ function ProductRow({ ranked, rank, dose, ingredient }: { ranked: RankedProduct;
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
         <span>{m.score(ranked.score)}</span>
         {price.url && (
-          <a href={price.url} target="_blank" rel="noopener noreferrer sponsored" className="btn-ghost px-3 py-1.5 text-xs print:hidden">
+          <a href={`/go/${encodeURIComponent(product.id)}?c=${price.country}`} target="_blank" rel="noopener sponsored nofollow" className="btn-ghost px-3 py-1.5 text-xs print:hidden">
             {marketplaceLabel(price.url, m)} ↗
           </a>
         )}
@@ -146,9 +152,15 @@ function SupplementCard({ item }: { item: SupplementRecommendation }) {
                   <ProductRow key={p.product.id} ranked={p} rank={i + 1} dose={item.dose!} ingredient={item.supplement.name.toLowerCase()} />
                 ))}
               </ol>
+              {COUNTRY_PRODUCT_NOTICES[top[0]!.price.country] && (
+                <p className="mt-2 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600">
+                  <span className="font-medium">{m.requiredNotice}:</span> {COUNTRY_PRODUCT_NOTICES[top[0]!.price.country]}
+                </p>
+              )}
               {top.some((p) => p.price.url) && (
                 <p className="mt-2 text-xs text-slate-500 print:hidden">
-                  {m.commission}
+                  {m.commission}{" "}
+                  <a href="/how-it-works#money" className="underline">{m.howWeChoose}</a>
                 </p>
               )}
             </>
@@ -291,6 +303,9 @@ function ShareBar({ result, profile }: { result: RecommendationResult; profile: 
       <div className="flex flex-wrap gap-2">
         <a className="btn bg-[#25D366] text-white hover:bg-[#1ebe5b]" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer">
           {m.whatsapp}
+        </a>
+        <a className="btn bg-[#06C755] text-white hover:bg-[#05b14c]" href={`https://line.me/R/share?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer">
+          {m.line}
         </a>
         {typeof navigator !== "undefined" && "share" in navigator && (
           <button type="button" className="btn-ghost" onClick={nativeShare}>{m.moreApps}</button>

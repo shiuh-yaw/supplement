@@ -43,6 +43,9 @@ Other commands: `pnpm test` (engine tests), `pnpm typecheck`, `pnpm build`, `pnp
      *transcribes* values and units into a strict JSON schema. The form is filled and highlighted for the user
      to check; unknown units are skipped, never guessed. The file is never stored. Needs `ANTHROPIC_API_KEY`;
      without it the upload button simply doesn't appear. Rate-limited to 6 uploads per IP per 10 minutes.
+     People must tick an explicit consent (naming Anthropic and the United States) before a file is sent; the API
+     refuses uploads without it. `LAB_UPLOAD_OFF_COUNTRIES` (default `VN`) switches upload off where a cross-border
+     transfer of health data needs more paperwork first (Vietnam's Decree 356 transfer assessment).
 2. **Rules** (stored in the DB, edited in the backoffice) are evaluated against the profile. Each rule has an
    effect:
    - `BLOCK` – the supplement (or all supplements, for global rules) is not recommended; the user is
@@ -83,18 +86,55 @@ Rule conditions are a small JSON language:
 Unknown values (e.g. no lab result) never match a comparison; use `notExists` to target missing data. The rule
 editor lists every fact and validates conditions before saving.
 
+## Products outside Malaysia
+
+`packages/db/prisma/catalog-sea.ts` holds products researched for SG, ID, TH, PH and VN. The retailer pages couldn't be
+opened during research, so the seed adds them **inactive** with notes starting `UNVERIFIED —`, and the dashboard counts
+them. Check each one on the shop page, correct it, and tick *Active*. Prices for SG/PH/TH/ID were also added to a few
+Malaysian products sold there.
+
+## Optional accounts (off by default)
+
+People can create an account to see their saved checks on other devices. It's **off** until the web service has
+`ACCOUNTS_ENABLED=true`, `ACCOUNTS_SECRET` (32+ characters), `ACCOUNTS_ENCRYPTION_KEY` (`openssl rand -base64 32`) and
+`PUBLIC_URL` (the site's address; passkeys are bound to its hostname, so changing domain means people sign up again).
+
+- **No email, name or password.** Sign-in is by passkey (fingerprint, face or phone PIN), which syncs through iCloud
+  Keychain or Google Password Manager. Nothing to phish or leak.
+- **Explicit consent** naming what is stored and where (Singapore) before the account is created; the consent version
+  and time are recorded.
+- **Encrypted:** each saved check is AES-256-GCM encrypted with `ACCOUNTS_ENCRYPTION_KEY`, bound to its account. Keep
+  the key safe: if it's lost, saved checks can't be read; if it leaks, rotate it (old checks then need re-syncing).
+- **Rights:** download everything as JSON (`/api/account/export`) and delete the account and all its checks at once.
+- **Before switching on:** a reviewed privacy notice, a named data protection officer (Malaysia PDPA), a 72-hour
+  breach plan, and confirmation that storing health data in Singapore suits each country's transfer rules.
+
+## Affiliate links
+
+Buy links on the results page go through `/go/<productId>?c=<country>`. That route looks the link up in the catalog
+(so it can't redirect anywhere else), adds the affiliate code if a program covers the shop, counts the click
+anonymously (product, country, shop; no IP or profile) and redirects. Set programs up in the backoffice under
+**Affiliate links** (admins only): a deep-link template from the shop's affiliate dashboard with `{url}` and optional
+`{sub}` (e.g. `sukat_protein`), or parameters to add (e.g. `rcode=ABC123`). The page lists every shop the catalog links
+to, whether a program covers it, and clicks in the last 30 days.
+
+Affiliate code lives in `packages/engine/src/affiliate.ts` and is applied only after the click: a test fails if the
+recommendation, ranking or dosing code ever references it. The website discloses it under every product list and on
+`/how-it-works`.
+
 ## Languages
 
-The website is in **English, Bahasa Melayu and Bahasa Indonesia**. The language comes from a `lang` cookie
-(set by the switcher in the header), else the browser's language, else English.
+The website is in **English, Bahasa Melayu, Bahasa Indonesia, Thai and Vietnamese**. The language comes from a `lang`
+cookie (set by the switcher in the header), else the browser's language, else English. Filipino isn't included: English
+is widely used for health information in the Philippines.
 
-- **Website text:** `apps/web/lib/i18n/messages.ts`. `ms` and `id` are type-checked against `en`, so a
-  missing string fails the build.
+- **Website text:** `apps/web/lib/i18n/messages.ts` (en, ms, id), `messages-th.ts`, `messages-vi.ts`. Every language is
+  type-checked against `en`, so a missing string fails the build.
 - **Engine text** (dose wording, reasons, product notes, labels): `packages/engine/src/i18n.ts` and
-  `labels.ts`. `recommend(profile, kb, { locale })`.
+  `labels.ts`; Thai and Vietnamese, including the starter rules and supplements, in `packages/engine/src/locales/`. `recommend(profile, kb, { locale })`.
 - **Rules and supplements:** each has a `translations` field, edited in the backoffice ("Message in Bahasa
   Melayu / Indonesia"; translated name, summary, timing and notes). Empty fields fall back to English. The
-  seed fills the starter translations only where a row has none.
+  seed adds a starter translation only for languages a row doesn't have yet.
 
 The translations were written without a native-speaker review; have the medical wording proofread.
 
@@ -172,10 +212,10 @@ Any other host that runs Dockerfiles works the same way. Build from the reposito
 
 ## Roadmap
 
-1. **Done:** 7 supplements with lab-based safety rules, report upload with AI transcription, unit
+1. **Done:** five languages, affiliate links with disclosure, 7 supplements with lab-based safety rules, report upload with AI transcription, unit
    handling, "what I already take" checks, device history, calendar reminders, installable web app,
    backoffice with review workflow.
-2. **Next:** Bahasa Malaysia / Bahasa Indonesia, then Thai / Vietnamese; optional accounts to sync history
-   across devices (with explicit consent); supplement label scanning.
+2. **Next:** see the roadmap page linked from the latest pull request: verify the SG/ID/TH/PH/VN catalog, add
+   marketplace links for affiliate revenue, optional accounts with consent, pharmacist hand-off, label scanning.
 3. **Later:** AI Q&A grounded on the user's own plan and the evidence library; partnerships to book blood
    tests or a dietitian (e.g. Halodoc, Pathlab, BP Healthcare, Prodia).

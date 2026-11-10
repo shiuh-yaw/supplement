@@ -1,3 +1,5 @@
+import { TH_LABELS } from "./locales/th";
+import { VI_LABELS } from "./locales/vi";
 import type { Allergen, Country, CurrentSupplement, Diet, Goal, HealthCondition, MedicationClass } from "./types";
 
 export const GOAL_LABELS: Record<Goal, string> = {
@@ -178,4 +180,4 @@ const ID_LABELS: LabelSet = {
   },
 };
 
-export const LABELS: Record<Locale, LabelSet> = { en: EN_LABELS, ms: MS_LABELS, id: ID_LABELS };
+export const LABELS: Record<Locale, LabelSet> = { en: EN_LABELS, ms: MS_LABELS, id: ID_LABELS, th: TH_LABELS, vi: VI_LABELS };

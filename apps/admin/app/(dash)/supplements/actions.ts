@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma, writeAudit, type EvidenceGrade } from "@supplement/db";
-import { dosingSchema } from "@supplement/engine";
+import { TRANSLATED_LOCALES, dosingSchema } from "@supplement/engine";
 import { can, requireUser } from "@/lib/auth";
 import { guard, type ActionState } from "@/lib/action";
 
@@ -19,7 +19,7 @@ export async function saveSupplement(_prev: ActionState, formData: FormData): Pr
       timing: String(formData.get("timing") ?? "").trim(),
       notes: String(formData.get("notes") ?? "").split("\n").map((s) => s.trim()).filter(Boolean),
       translations: Object.fromEntries(
-        ["ms", "id"].map((loc) => {
+        TRANSLATED_LOCALES.map((loc) => {
           const text = (k: string) => String(formData.get(`${k}_${loc}`) ?? "").trim();
           const t = {
             name: text("name"),

@@ -7,6 +7,7 @@ import {
   RULE_TRANSLATIONS,
   SAMPLE_PRODUCTS,
   SUPPLEMENT_TRANSLATIONS,
+  TRANSLATED_LOCALES,
   recommend,
   type KnowledgeBase,
 } from "../src";
@@ -14,16 +15,15 @@ import {
 const kb: KnowledgeBase = { supplements: DEFAULT_SUPPLEMENTS, rules: DEFAULT_RULES, products: SAMPLE_PRODUCTS };
 
 describe("translations are complete", () => {
-  it("covers every starter rule in Malay and Indonesian", () => {
+  it("covers every starter rule in every language", () => {
     for (const r of DEFAULT_RULES) {
-      expect(RULE_TRANSLATIONS[r.id]?.ms, r.id).toBeTruthy();
-      expect(RULE_TRANSLATIONS[r.id]?.id, r.id).toBeTruthy();
+      for (const loc of TRANSLATED_LOCALES) expect(RULE_TRANSLATIONS[r.id]?.[loc], `${r.id}/${loc}`).toBeTruthy();
     }
   });
 
   it("covers every starter supplement, with the same number of notes", () => {
     for (const s of DEFAULT_SUPPLEMENTS) {
-      for (const loc of ["ms", "id"] as const) {
+      for (const loc of TRANSLATED_LOCALES) {
         const t = SUPPLEMENT_TRANSLATIONS[s.slug]?.[loc];
         expect(t, `${s.slug}/${loc}`).toBeTruthy();
         expect(t!.notes.length, `${s.slug}/${loc} notes`).toBe(s.notes.length);
@@ -32,7 +32,7 @@ describe("translations are complete", () => {
   });
 
   it("has every label and engine message in each language", () => {
-    for (const loc of ["ms", "id"] as const) {
+    for (const loc of TRANSLATED_LOCALES) {
       for (const group of Object.keys(LABELS.en) as (keyof typeof LABELS.en)[]) {
         expect(Object.keys(LABELS[loc][group]).sort(), `${loc}.${group}`).toEqual(Object.keys(LABELS.en[group]).sort());
       }
@@ -59,6 +59,15 @@ describe("engine output follows the locale", () => {
     expect(r.items.find((i) => i.supplement.slug === "vitamin_d")!.dose?.text).toBe("1.000 IU/hari");
     expect(r.items.find((i) => i.supplement.slug === "iron")!.dose?.text).toBe("60–65 mg zat besi dua hari sekali");
     expect(r.disclaimer).toMatch(/bukan saran medis/);
+  });
+
+  it("writes Thai and Vietnamese, with dot thousands in Vietnamese", () => {
+    const th = recommend(vegan, kb, { locale: "th" });
+    expect(th.items.find((i) => i.supplement.slug === "vitamin_d")!.dose?.text).toMatch(/^1,000 IU/);
+    expect(th.disclaimer).toMatch(/[\u0E00-\u0E7F]/);
+    const vi = recommend(vegan, kb, { locale: "vi" });
+    expect(vi.items.find((i) => i.supplement.slug === "vitamin_d")!.dose?.text).toMatch(/^1\.000 IU/);
+    expect(vi.disclaimer).toMatch(/bác sĩ|y tế/);
   });
 
   it("keeps English by default", () => {

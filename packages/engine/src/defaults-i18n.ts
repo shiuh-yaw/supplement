@@ -1,11 +1,16 @@
+import type { TRANSLATED_LOCALES } from "./i18n";
+import { TH_RULES, TH_SUPPLEMENTS } from "./locales/th";
+import { VI_RULES, VI_SUPPLEMENTS } from "./locales/vi";
 /**
  * Translations of the starter knowledge base. The seed copies these into each
  * supplement's and rule's `translations` field in the database, where the
  * backoffice can correct them. English stays in the main fields.
  *
+ * Thai and Vietnamese live in ./locales/th.ts and ./locales/vi.ts.
+ *
  * Medical wording should be proofread by a native speaker before promotion.
  */
-export type TranslatedLocale = "ms" | "id";
+export type TranslatedLocale = (typeof TRANSLATED_LOCALES)[number];
 
 export interface SupplementTranslation {
   name: string;
@@ -14,7 +19,7 @@ export interface SupplementTranslation {
   notes: string[];
 }
 
-export const SUPPLEMENT_TRANSLATIONS: Record<string, Record<TranslatedLocale, SupplementTranslation>> = {
+const MS_ID_SUPPLEMENTS: Record<string, Record<"ms" | "id", SupplementTranslation>> = {
   protein: {
     ms: {
       name: "Serbuk protein",
@@ -147,7 +152,7 @@ export const SUPPLEMENT_TRANSLATIONS: Record<string, Record<TranslatedLocale, Su
   },
 };
 
-export const RULE_TRANSLATIONS: Record<string, Record<TranslatedLocale, string>> = {
+const MS_ID_RULES: Record<string, Record<"ms" | "id", string>> = {
   "global-under-18": {
     ms: "Anda berumur bawah 18 tahun. Suplemen sukan tidak disyorkan tanpa doktor atau pakar diet sukan — utamakan makanan dahulu.",
     id: "Anda berusia di bawah 18 tahun. Suplemen olahraga tidak dianjurkan tanpa dokter atau ahli gizi olahraga — utamakan makanan terlebih dahulu.",
@@ -301,3 +306,11 @@ export const RULE_TRANSLATIONS: Record<string, Record<TranslatedLocale, string>>
     id: "Produk elektrolit menambah natrium (dan sering kalium). Bila Anda memiliki tekanan darah tinggi, penyakit jantung, atau minum obat tekanan darah, konsultasikan dengan dokter terlebih dahulu.",
   },
 };
+
+export const SUPPLEMENT_TRANSLATIONS: Record<string, Record<TranslatedLocale, SupplementTranslation>> = Object.fromEntries(
+  Object.entries(MS_ID_SUPPLEMENTS).map(([slug, t]) => [slug, { ...t, th: TH_SUPPLEMENTS[slug]!, vi: VI_SUPPLEMENTS[slug]! }]),
+);
+
+export const RULE_TRANSLATIONS: Record<string, Record<TranslatedLocale, string>> = Object.fromEntries(
+  Object.entries(MS_ID_RULES).map(([id, t]) => [id, { ...t, th: TH_RULES[id]!, vi: VI_RULES[id]! }]),
+);

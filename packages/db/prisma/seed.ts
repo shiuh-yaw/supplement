@@ -9,6 +9,10 @@ import {
 } from "@supplement/engine";
 import { prisma, toDbEffect, writeAudit } from "../src/index";
 import { CATALOG_CHECKED_ON, REAL_CATALOG } from "./catalog";
+import { SEA_CATALOG, SEA_CATALOG_CHECKED_ON, SEA_EXTRA_PRICES } from "./catalog-sea";
+
+/** Prefix on products that must be checked before they go live (the dashboard counts them). */
+const UNVERIFIED = "UNVERIFIED —";
 
 const SAMPLE_PREFIX = "SAMPLE DATA";
 
@@ -124,24 +128,30 @@ async function main() {
     }
   }
 
-  // --- translations (only fills rows that have none, so backoffice edits stay) ---
-  const isEmpty = (v: unknown) => !v || (typeof v === "object" && Object.keys(v as object).length === 0);
+  // --- translations (adds only the languages a row doesn't have yet, so backoffice edits stay) ---
+  const missingLangs = (current: unknown, starter: object) => {
+    const have = current && typeof current === "object" ? (current as Record<string, unknown>) : {};
+    const add = Object.fromEntries(Object.entries(starter).filter(([loc]) => !(loc in have)));
+    return Object.keys(add).length ? { ...have, ...add } : null;
+  };
   let translated = 0;
   for (const [slug, t] of Object.entries(SUPPLEMENT_TRANSLATIONS)) {
     const row = await prisma.supplement.findUnique({ where: { slug } });
-    if (row && isEmpty(row.translations)) {
-      await prisma.supplement.update({ where: { id: row.id }, data: { translations: t as object } });
+    const merged = row && missingLangs(row.translations, t);
+    if (row && merged) {
+      await prisma.supplement.update({ where: { id: row.id }, data: { translations: merged as object } });
       translated++;
     }
   }
   for (const [key, t] of Object.entries(RULE_TRANSLATIONS)) {
     const row = await prisma.rule.findUnique({ where: { key } });
-    if (row && isEmpty(row.translations)) {
-      await prisma.rule.update({ where: { id: row.id }, data: { translations: t } });
+    const merged = row && missingLangs(row.translations, t);
+    if (row && merged) {
+      await prisma.rule.update({ where: { id: row.id }, data: { translations: merged as object } });
       translated++;
     }
   }
-  if (translated) console.log(`  + translations added to ${translated} supplements and rules`);
+  if (translated) console.log(`  + translations added or extended for ${translated} supplements and rules`);
 
   // --- real catalog ------------------------------------------------------------
   let productsAdded = 0;
@@ -173,6 +183,53 @@ async function main() {
     productsAdded++;
   }
   if (productsAdded) console.log(`  + ${productsAdded} real products added`);
+
+  // --- other Southeast Asian countries: added INACTIVE until someone verifies them on the shop page ---
+  let seaAdded = 0;
+  for (const p of SEA_CATALOG) {
+    const supplementId = supplementIds.get(p.supplementSlug);
+    if (!supplementId) continue;
+    if (await prisma.product.findFirst({ where: { brand: p.brand, name: p.name } })) continue;
+    const created = await prisma.product.create({
+      data: {
+        supplementId,
+        brand: p.brand,
+        name: p.name,
+        form: p.form,
+        servingSizeG: p.servingSizeG,
+        activePerServingG: p.activePerServingG,
+        sugarPerServingG: p.sugarPerServingG,
+        servingsPerContainer: p.servingsPerContainer,
+        allergens: p.allergens,
+        vegan: p.vegan,
+        halalCertified: p.halalCertified,
+        halalBody: p.halalBody,
+        certifications: p.certifications,
+        registrationNo: p.registrationNo,
+        active: false,
+        notes: [
+          `${UNVERIFIED} Researched ${SEA_CATALOG_CHECKED_ON} from search results; check the price, label and registration on the shop page, then tick Active.`,
+          p.notes,
+          `Sources: ${p.sources.join(" ")}`,
+        ].filter(Boolean).join(" "),
+        prices: { create: p.prices.map((pr) => ({ country: pr.country, currency: pr.currency, price: pr.price, url: pr.url })) },
+      },
+    });
+    await writeAudit({ userId: null, action: "seed:add-product", entity: "Product", entityId: created.id, after: { brand: p.brand, name: p.name, active: false } });
+    seaAdded++;
+  }
+  if (seaAdded) console.log(`  + ${seaAdded} SEA products added as inactive (verify, then activate)`);
+
+  let pricesAdded = 0;
+  for (const x of SEA_EXTRA_PRICES) {
+    const product = await prisma.product.findFirst({ where: { brand: x.brand, name: x.name } });
+    if (!product) continue;
+    if (await prisma.productPrice.findUnique({ where: { productId_country: { productId: product.id, country: x.country } } })) continue;
+    await prisma.productPrice.create({ data: { productId: product.id, country: x.country, currency: x.currency, price: x.price, url: x.url } });
+    await writeAudit({ userId: null, action: "seed:add-price", entity: "Product", entityId: product.id, after: { country: x.country, price: x.price, url: x.url, source: x.source } });
+    pricesAdded++;
+  }
+  if (pricesAdded) console.log(`  + ${pricesAdded} prices added for other countries`);
 
   // Remove SAMPLE products for supplements that now have at least one real product.
   let samplesRemoved = 0;

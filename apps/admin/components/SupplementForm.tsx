@@ -48,6 +48,8 @@ export function SupplementForm({
       {([
         ["ms", "Bahasa Melayu"],
         ["id", "Bahasa Indonesia"],
+        ["th", "Thai (ไทย)"],
+        ["vi", "Vietnamese (Tiếng Việt)"],
       ] as const).map(([loc, langName]) => {
         const t = (((s.translations ?? {}) as Record<string, { name?: string; summary?: string; timing?: string; notes?: string[] }>)[loc]) ?? {};
         return (

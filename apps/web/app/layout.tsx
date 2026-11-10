@@ -41,6 +41,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <main className="mx-auto max-w-5xl px-4 py-8 sm:py-12 print:p-0">{children}</main>
           <footer className="border-t border-slate-200 py-8 text-center text-xs text-slate-500 print:hidden">
             <p className="mx-auto max-w-2xl px-4">{m.site.footer}</p>
+            <p className="mt-2">
+              <Link href="/how-it-works" className="underline">{m.site.howItWorks}</Link>
+            </p>
           </footer>
         </I18nProvider>
       </body>

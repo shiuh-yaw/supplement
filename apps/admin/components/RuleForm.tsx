@@ -73,6 +73,8 @@ export function RuleForm({
             {([
               ["ms", "Bahasa Melayu"],
               ["id", "Bahasa Indonesia"],
+              ["th", "Thai (ไทย)"],
+              ["vi", "Vietnamese (Tiếng Việt)"],
             ] as const).map(([loc, name]) => (
               <div key={loc}>
                 <label className="label" htmlFor={`message_${loc}`}>Message in {name}</label>
