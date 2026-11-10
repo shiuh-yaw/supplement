@@ -1,4 +1,4 @@
-import type { Allergen, Country, Diet, Goal, HealthCondition, MedicationClass } from "./types";
+import type { Allergen, Country, CurrentSupplement, Diet, Goal, HealthCondition, MedicationClass } from "./types";
 
 export const GOAL_LABELS: Record<Goal, string> = {
   muscle_gain: "Build muscle",
@@ -30,6 +30,8 @@ export const ALLERGEN_LABELS: Record<Allergen, string> = {
   egg: "Egg",
   peanut: "Peanut",
   tree_nut: "Tree nuts",
+  fish: "Fish",
+  shellfish: "Shellfish",
 };
 
 export const CONDITION_LABELS: Record<HealthCondition, string> = {
@@ -41,6 +43,22 @@ export const CONDITION_LABELS: Record<HealthCondition, string> = {
   gout: "Gout / high uric acid",
   pregnant: "Pregnant",
   breastfeeding: "Breastfeeding",
+  iron_overload_risk: "Thalassaemia (incl. trait) or haemochromatosis",
+};
+
+export const CURRENT_SUPPLEMENT_LABELS: Record<CurrentSupplement, string> = {
+  protein: "Protein powder",
+  creatine: "Creatine",
+  vitamin_d: "Vitamin D",
+  omega_3: "Fish oil / omega-3",
+  iron: "Iron",
+  vitamin_b12: "Vitamin B12",
+  electrolytes: "Electrolytes",
+  multivitamin: "Multivitamin",
+  calcium: "Calcium",
+  magnesium: "Magnesium",
+  zinc: "Zinc",
+  herbal: "Herbal products (e.g. St John's Wort, ginkgo)",
 };
 
 export const MEDICATION_LABELS: Record<MedicationClass, string> = {

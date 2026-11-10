@@ -7,8 +7,13 @@
  * Have a qualified dietitian / pharmacist / doctor review them before going live.
  */
 import type { Product, Rule, Supplement } from "./types";
+import {
+  MICRONUTRIENT_RULES,
+  MICRONUTRIENT_SAMPLE_PRODUCTS,
+  MICRONUTRIENT_SUPPLEMENTS,
+} from "./defaults-micronutrients";
 
-export const DEFAULT_SUPPLEMENTS: Supplement[] = [
+const CORE_SUPPLEMENTS: Supplement[] = [
   {
     slug: "protein",
     name: "Protein powder",
@@ -48,7 +53,7 @@ export const DEFAULT_SUPPLEMENTS: Supplement[] = [
     summary:
       "The most researched sports supplement. Improves strength, power and lean mass gains when combined with resistance training.",
     evidenceGrade: "A",
-    dosing: { kind: "fixed", min: 3, max: 5, unit: "g" },
+    dosing: { kind: "fixed", min: 3, max: 5, unit: "g", schedule: "daily" },
     timing: "Daily, any time, with water or food. No loading phase needed — it saturates muscles in 3–4 weeks.",
     notes: [
       "Creatine can raise blood creatinine test results without harming your kidneys. Tell your doctor you take it before kidney tests.",
@@ -67,7 +72,7 @@ export const DEFAULT_SUPPLEMENTS: Supplement[] = [
   },
 ];
 
-export const DEFAULT_RULES: Rule[] = [
+const CORE_RULES: Rule[] = [
   // ---------------------------------------------------------------- global safety
   {
     id: "global-under-18",
@@ -233,7 +238,7 @@ export const DEFAULT_RULES: Rule[] = [
  * SAMPLE products only — fictional brands with illustrative prices so the app works
  * out of the box. Replace them with your real, verified catalog in the backoffice.
  */
-export const SAMPLE_PRODUCTS: Product[] = [
+const CORE_SAMPLE_PRODUCTS: Product[] = [
   {
     id: "sample-whey-isolate",
     supplementSlug: "protein",
@@ -339,3 +344,7 @@ export const SAMPLE_PRODUCTS: Product[] = [
     ],
   },
 ];
+
+export const DEFAULT_SUPPLEMENTS: Supplement[] = [...CORE_SUPPLEMENTS, ...MICRONUTRIENT_SUPPLEMENTS];
+export const DEFAULT_RULES: Rule[] = [...CORE_RULES, ...MICRONUTRIENT_RULES];
+export const SAMPLE_PRODUCTS: Product[] = [...CORE_SAMPLE_PRODUCTS, ...MICRONUTRIENT_SAMPLE_PRODUCTS];

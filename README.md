@@ -34,23 +34,42 @@ Other commands: `pnpm test` (engine tests), `pnpm typecheck`, `pnpm build`, `pnp
 
 ## How a recommendation is made
 
-1. **Questionnaire** (`apps/web/components/Questionnaire.tsx`) collects goal, weight, training, diet,
-   halal / lactose / allergies, budget, conditions, medications and optional lab values (eGFR, creatinine,
-   ALT, uric acid, HbA1c).
+1. **Questionnaire** (`apps/web/components/Questionnaire.tsx`) collects goal, weight, training, diet, fish
+   intake, halal / lactose / allergies, budget, conditions (incl. thalassaemia), medications, supplements
+   already taken, and optional lab values: eGFR, creatinine, ALT, uric acid, HbA1c, vitamin D, ferritin, B12.
+   Creatinine, uric acid, vitamin D and B12 accept SI or conventional units (default by country) and are
+   stored in SI. Values that only make sense in the other unit get a "Switch unit" prompt.
+   - **Lab report upload** (optional): `/api/extract-labs` sends the PDF/photo to Claude, which only
+     *transcribes* values and units into a strict JSON schema. The form is filled and highlighted for the user
+     to check; unknown units are skipped, never guessed. The file is never stored. Needs `ANTHROPIC_API_KEY`;
+     without it the upload button simply doesn't appear. Rate-limited to 6 uploads per IP per 10 minutes.
 2. **Rules** (stored in the DB, edited in the backoffice) are evaluated against the profile. Each rule has an
    effect:
    - `BLOCK` – the supplement (or all supplements, for global rules) is not recommended; the user is
      told to see a professional. **Blocks always win.**
    - `CAUTION` – recommended, but with a warning shown.
    - `RECOMMEND` – the supplement is indicated for this profile.
-3. **Dosing** – creatine uses a fixed range (3–5 g/day). Protein targets a total g/kg/day by goal and
-   recommends only the **gap** left after food, so people who already eat enough protein are told they don't need powder.
+3. **Dosing** – fixed ranges (daily, every other day for iron, or per hour of exercise for electrolytes).
+   Protein targets a total g/kg/day by goal and recommends only the **gap** left after food, so people who
+   already eat enough protein are told they don't need powder.
+
+   Supplements covered: protein, creatine, vitamin D3, omega-3 (fish or algae), iron (only with a ferritin
+   result), vitamin B12 and electrolytes.
 4. **Products** are filtered (sold in the user's country, allergens, vegan, lactose, halal) and ranked on:
    third-party testing (35), value per gram of active ingredient (35), formulation quality (15) and personal
    fit, i.e. sugar for blood-sugar management and budget (15). **Affiliate commission is never a ranking factor.**
-5. Results show the dose, the reasons, the warnings, the research references and a disclaimer. The web app
-   stores **no personal or health data**, only an anonymous `{country, goal, recommended, blocked}` event for
-   the dashboard.
+5. Results show the dose, servings per product, the reasons, the warnings (including double-ups with
+   supplements already taken), research references and a disclaimer. People can share to WhatsApp, save a PDF
+   for their doctor, save the check to **this device's** history (compare checks and lab values over time at
+   `/history`), and add **calendar reminders** (.ics). The site is installable as an app (web manifest).
+   The web app stores **no personal or health data** on the server: shared links carry answers in the URL
+   fragment, history lives in the browser, and only an anonymous `{country, goal, recommended, blocked}`
+   event is kept for the dashboard.
+
+**New supplements go live only after review.** The seed publishes new *safety* rules straight away (they can
+only hold a recommendation back) but adds new *recommend* rules as **Pending review**. A supplement isn't shown
+to users until at least one of its recommend rules is published. `pnpm db:seed` is safe to re-run on a live
+database: it only adds what's missing and never overwrites backoffice edits.
 
 Rule conditions are a small JSON language:
 
@@ -107,6 +126,7 @@ root with their own Dockerfile (`apps/web/Dockerfile`, `apps/admin/Dockerfile`).
    | `RAILWAY_DOCKERFILE_PATH` | `apps/web/Dockerfile` |
    | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
    | `NEXT_PUBLIC_APP_NAME` | `Sukat` (optional) |
+   | `ANTHROPIC_API_KEY` | your Anthropic API key (optional — enables lab report upload) |
 
    Then *Settings → Networking → Generate Domain*. Leave *Root Directory* empty.
 4. **Add admin:** **+ Create → GitHub Repo →** the same repo. Rename it to `admin` and set:
@@ -137,8 +157,10 @@ Any other host that runs Dockerfiles works the same way. Build from the reposito
 
 ## Roadmap
 
-1. **Now (MVP):** protein + creatine, questionnaire, manually entered labs, backoffice with review workflow.
-2. **Next:** user accounts (save and re-check plans), more supplements (vitamin D, omega-3, magnesium,
-   electrolytes, iron) with their lab-based rules, Bahasa Malaysia / Bahasa Indonesia / Thai / Vietnamese translations.
-3. **Later:** upload a medical report (PDF/photo) → AI extracts lab values → **user confirms** → the same
-   deterministic rules decide. Expert-reviewed personal plans, retest reminders.
+1. **Done:** 7 supplements with lab-based safety rules, report upload with AI transcription, unit
+   handling, "what I already take" checks, device history, calendar reminders, installable web app,
+   backoffice with review workflow.
+2. **Next:** Bahasa Malaysia / Bahasa Indonesia, then Thai / Vietnamese; optional accounts to sync history
+   across devices (with explicit consent); supplement label scanning.
+3. **Later:** AI Q&A grounded on the user's own plan and the evidence library; partnerships to book blood
+   tests or a dietitian (e.g. Halodoc, Pathlab, BP Healthcare, Prodia).

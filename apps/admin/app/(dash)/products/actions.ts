@@ -6,7 +6,7 @@ import { prisma, writeAudit } from "@supplement/db";
 import { ALLERGENS, COUNTRIES, CURRENCY_BY_COUNTRY } from "@supplement/engine";
 import { requireUser } from "@/lib/auth";
 import { guard, type ActionState } from "@/lib/action";
-import { PRODUCT_FORMS } from "@/lib/constants";
+import { PRODUCT_FORMS, doseUnitOf } from "@/lib/constants";
 
 const list = (v: FormDataEntryValue | null) =>
   String(v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -42,8 +42,13 @@ export async function saveProduct(_prev: ActionState, formData: FormData): Promi
     if (!data.brand || !data.name) errors.push("Brand and name are required.");
     if (!PRODUCT_FORMS.includes(data.form as (typeof PRODUCT_FORMS)[number])) errors.push("Choose a form.");
     if (!(data.servingSizeG > 0)) errors.push("Serving size must be > 0.");
-    if (!(data.activePerServingG > 0) || data.activePerServingG > data.servingSizeG)
-      errors.push("Active amount per serving must be > 0 and not larger than the serving.");
+    const supplement = data.supplementId
+      ? await prisma.supplement.findUnique({ where: { id: data.supplementId }, select: { dosing: true } })
+      : null;
+    const unit = doseUnitOf(supplement?.dosing);
+    if (!(data.activePerServingG > 0)) errors.push("Active amount per serving must be greater than 0.");
+    else if (unit.startsWith("g") && data.activePerServingG > data.servingSizeG)
+      errors.push("Active amount per serving can't be larger than the serving itself.");
     if (!Number.isInteger(data.servingsPerContainer) || data.servingsPerContainer <= 0)
       errors.push("Servings per container must be a whole number > 0.");
     if (data.vegan && data.allergens.includes("dairy")) errors.push("A vegan product can't contain dairy.");

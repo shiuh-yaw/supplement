@@ -1,4 +1,16 @@
-import type { Dose, DosingConfig, UserProfile } from "./types";
+import type { Dose, DoseSchedule, DosingConfig, UserProfile } from "./types";
+
+const SCHEDULE_TEXT: Record<DoseSchedule, string> = {
+  daily: "/day",
+  every_other_day: " every other day",
+  per_exercise_hour: " per hour of exercise",
+};
+
+export function doseText(min: number, max: number, unit: string, schedule: DoseSchedule): string {
+  const amount = min === max ? `${min}` : `${min}–${max}`;
+  const fmt = (n: string) => n.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `${fmt(amount)} ${unit}${SCHEDULE_TEXT[schedule]}`;
+}
 
 export type DoseOutcome =
   | { kind: "dose"; dose: Dose; reasons: string[] }
@@ -14,7 +26,8 @@ export function computeDose(dosing: DosingConfig, profile: UserProfile): DoseOut
         min: dosing.min,
         max: dosing.max,
         unit: dosing.unit,
-        text: dosing.min === dosing.max ? `${dosing.min} ${dosing.unit}/day` : `${dosing.min}–${dosing.max} ${dosing.unit}/day`,
+        schedule: dosing.schedule,
+        text: doseText(dosing.min, dosing.max, dosing.unit, dosing.schedule),
       },
       reasons: [],
     };
@@ -71,7 +84,8 @@ export function computeDose(dosing: DosingConfig, profile: UserProfile): DoseOut
       min,
       max,
       unit: "g protein",
-      text: min === max ? `${min} g protein/day` : `${min}–${max} g protein/day`,
+      schedule: "daily",
+      text: doseText(min, max, "g protein", "daily"),
     },
     reasons,
   };

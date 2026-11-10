@@ -6,14 +6,18 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p ${PORT:-3000}",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@supplement/db": "workspace:*",
     "@supplement/engine": "workspace:*",
     "next": "15.5.29",
     "react": "19.1.10",
-    "react-dom": "19.1.10"
+    "react-dom": "19.1.10",
+    "@anthropic-ai/sdk": "1.7.0",
+    "zod": "3.25.76",
+    "server-only": "0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.5",
@@ -22,6 +26,7 @@
     "@types/react-dom": "19.1.11",
     "tailwindcss": "4.3.5",
     "typescript": "5.9.3",
-    "dotenv": "17.4.2"
+    "dotenv": "17.4.2",
+    "vitest": "3.2.7"
   }
 }
