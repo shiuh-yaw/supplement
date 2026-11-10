@@ -1,6 +1,9 @@
 import bcrypt from "bcryptjs";
 import { DEFAULT_RULES, DEFAULT_SUPPLEMENTS, NEW_RECOMMEND_RULE_IDS, SAMPLE_PRODUCTS } from "@supplement/engine";
-import { prisma, toDbEffect } from "../src/index";
+import { prisma, toDbEffect, writeAudit } from "../src/index";
+import { CATALOG_CHECKED_ON, REAL_CATALOG } from "./catalog";
+
+const SAMPLE_PREFIX = "SAMPLE DATA";
 
 /**
  * Safe to run repeatedly, including on a live database: it only ADDS what's missing
@@ -96,6 +99,76 @@ async function main() {
         },
       });
     }
+  }
+
+  // --- real catalog ------------------------------------------------------------
+  let productsAdded = 0;
+  for (const p of REAL_CATALOG) {
+    const supplementId = supplementIds.get(p.supplementSlug);
+    if (!supplementId) continue;
+    if (await prisma.product.findFirst({ where: { brand: p.brand, name: p.name } })) continue;
+    const created = await prisma.product.create({
+      data: {
+        supplementId,
+        brand: p.brand,
+        name: p.name,
+        form: p.form,
+        servingSizeG: p.servingSizeG,
+        activePerServingG: p.activePerServingG,
+        sugarPerServingG: p.sugarPerServingG,
+        servingsPerContainer: p.servingsPerContainer,
+        allergens: p.allergens,
+        vegan: p.vegan,
+        halalCertified: p.halalCertified,
+        halalBody: p.halalBody,
+        certifications: p.certifications,
+        registrationNo: p.registrationNo,
+        notes: [`Verified ${CATALOG_CHECKED_ON}.`, p.notes, `Sources: ${p.sources.join(" ")}`].filter(Boolean).join(" "),
+        prices: { create: p.prices.map((pr) => ({ country: pr.country, currency: pr.currency, price: pr.price, url: pr.url })) },
+      },
+    });
+    await writeAudit({ userId: null, action: "seed:add-product", entity: "Product", entityId: created.id, after: { brand: p.brand, name: p.name } });
+    productsAdded++;
+  }
+  if (productsAdded) console.log(`  + ${productsAdded} real products added`);
+
+  // Remove SAMPLE products for supplements that now have at least one real product.
+  let samplesRemoved = 0;
+  for (const [slug, id] of supplementIds) {
+    const real = await prisma.product.count({ where: { supplementId: id, NOT: { notes: { startsWith: SAMPLE_PREFIX } } } });
+    if (real === 0) continue;
+    const samples = await prisma.product.findMany({ where: { supplementId: id, notes: { startsWith: SAMPLE_PREFIX } } });
+    for (const s of samples) {
+      await prisma.product.delete({ where: { id: s.id } });
+      await writeAudit({ userId: null, action: "seed:remove-sample", entity: "Product", entityId: s.id, before: { brand: s.brand, name: s.name, supplement: slug } });
+      samplesRemoved++;
+    }
+  }
+  if (samplesRemoved) console.log(`  - ${samplesRemoved} sample products removed`);
+
+  // --- one-time owner approval of the starter recommendations -------------------
+  // Only when APPROVE_STARTER_RECOMMENDATIONS=true. Recorded against the owner's
+  // account in the audit log; a qualified reviewer should still check them.
+  if (process.env.APPROVE_STARTER_RECOMMENDATIONS === "true") {
+    const pending = await prisma.rule.findMany({
+      where: { status: "PENDING_REVIEW", key: { in: [...NEW_RECOMMEND_RULE_IDS] } },
+    });
+    const note = `Approved on the owner's instruction (${new Date().toISOString().slice(0, 10)}). Not yet reviewed by a qualified professional.`;
+    for (const r of pending) {
+      await prisma.rule.update({
+        where: { id: r.id },
+        data: { status: "PUBLISHED", reviewedById: admin.id, reviewedAt: new Date(), reviewNote: note },
+      });
+      await writeAudit({
+        userId: admin.id,
+        action: "publish",
+        entity: "Rule",
+        entityId: r.id,
+        before: { status: r.status },
+        after: { status: "PUBLISHED", reviewNote: note },
+      });
+    }
+    if (pending.length) console.log(`  ✓ ${pending.length} starter recommendations approved on the owner's instruction`);
   }
 
   console.log("✓ Seed complete");
