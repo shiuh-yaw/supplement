@@ -16,10 +16,11 @@ export const MICRONUTRIENT_SUPPLEMENTS: Supplement[] = [
       "Corrects low vitamin D. It doesn't add benefit if your level is already adequate. " +
       "Despite the sun, low vitamin D is common in Southeast Asia, especially for people who work indoors.",
     evidenceGrade: "A",
-    dosing: { kind: "fixed", min: 1000, max: 2000, unit: "IU", schedule: "daily" },
+    // 1,000 IU is also the maximum daily dose Malaysia's NPRA allows in health supplements.
+    dosing: { kind: "fixed", min: 1000, max: 1000, unit: "IU", schedule: "daily" },
     timing: "Once a day with a meal that contains some fat.",
     notes: [
-      "Keep your total from all products (including multivitamins) under 4,000 IU a day unless your doctor prescribes more.",
+      "Higher doses are only for a doctor to prescribe. Keep your total from all products (including multivitamins) under 4,000 IU a day.",
       "Re-test your level after about 3 months.",
     ],
     references: [

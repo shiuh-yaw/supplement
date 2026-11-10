@@ -44,6 +44,22 @@ async function main() {
     supplementIds.set(s.slug, row.id);
   }
 
+  // --- starter content corrections ---------------------------------------------
+  // Applied only if the value is still exactly what an earlier seed wrote, so
+  // edits made in the backoffice are never overwritten.
+  const vitD = DEFAULT_SUPPLEMENTS.find((x) => x.slug === "vitamin_d");
+  const vitDRow = await prisma.supplement.findUnique({ where: { slug: "vitamin_d" } });
+  const d = vitDRow?.dosing as { kind?: string; min?: number; max?: number; unit?: string } | undefined;
+  const isOldStarterDose = d?.kind === "fixed" && d.min === 1000 && d.max === 2000 && d.unit === "IU";
+  if (vitD && vitDRow && isOldStarterDose) {
+    const after = await prisma.supplement.update({
+      where: { id: vitDRow.id },
+      data: { dosing: vitD.dosing, notes: vitD.notes },
+    });
+    await writeAudit({ userId: null, action: "seed:update-dosing", entity: "Supplement", entityId: vitDRow.id, before: { dosing: vitDRow.dosing }, after: { dosing: after.dosing } });
+    console.log("  ~ vitamin D dose set to 1000 IU/day (Malaysia NPRA limit for supplements)");
+  }
+
   // --- rules (existing rules are left untouched) ---------------------------------
   // Safety rules (block/caution) go live immediately — they can only hold a
   // recommendation back. New recommend rules wait for a reviewer's approval.
@@ -123,7 +139,7 @@ async function main() {
         halalBody: p.halalBody,
         certifications: p.certifications,
         registrationNo: p.registrationNo,
-        notes: [`Verified ${CATALOG_CHECKED_ON}.`, p.notes, `Sources: ${p.sources.join(" ")}`].filter(Boolean).join(" "),
+        notes: [`Researched ${CATALOG_CHECKED_ON} from retailer listings; re-check the price.`, p.notes, `Sources: ${p.sources.join(" ")}`].filter(Boolean).join(" "),
         prices: { create: p.prices.map((pr) => ({ country: pr.country, currency: pr.currency, price: pr.price, url: pr.url })) },
       },
     });

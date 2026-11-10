@@ -52,7 +52,7 @@ describe("vitamin D", () => {
   it("is recommended for a low level, with a caution when very low", () => {
     const d = item({ ...base, labs: { vitaminDNmolL: 25 } }, "vitamin_d");
     expect(d.status).toBe("recommended");
-    expect(d.dose?.text).toBe("1,000–2,000 IU/day");
+    expect(d.dose?.text).toBe("1,000 IU/day");
     expect(ids(d.cautions)).toContain("vitd-caution-very-low");
   });
 
@@ -176,5 +176,29 @@ describe("already taking", () => {
 
   it("raises a general caution for herbal products", () => {
     expect(ids(recommend({ ...base, currentSupplements: ["herbal"] }, kb).generalCautions)).toContain("global-herbal");
+  });
+});
+
+describe("servings for capsules and high-strength products", () => {
+  const capsule = (active: number, slug = "omega_3", form = "fish_oil") => ({
+    id: "x", supplementSlug: slug, brand: "B", name: "N", form, servingSizeG: 0, activePerServingG: active,
+    sugarPerServingG: 0, servingsPerContainer: 30, allergens: [], vegan: false, halalCertified: false,
+    certifications: [], prices: [{ country: "MY" as const, currency: "MYR", price: 30 }],
+  });
+  it("counts capsules in whole units", async () => {
+    const { servingsFor } = await import("../src/ranking");
+    expect(servingsFor({ min: 250, max: 500, unit: "mg EPA+DHA", schedule: "daily", text: "" }, capsule(300))).toEqual({ min: 1, max: 2 });
+  });
+  it("shows one tablet for high-strength B12 and says it's more than needed", () => {
+    const kbB12: KnowledgeBase = { ...kb, products: [{ ...capsule(600, "vitamin_b12", "cyanocobalamin"), vegan: true }] };
+    const b12 = recommend({ ...base, diet: "vegan" }, kbB12).items.find((i) => i.supplement.slug === "vitamin_b12")!;
+    expect(b12.products[0]?.servingsPerDose).toEqual({ min: 1, max: 1 });
+    expect(b12.products[0]?.reasons.join(" ")).toMatch(/more than the 100 µg suggested/);
+  });
+  it("leaves out products far stronger than the dose when there's an upper limit", () => {
+    const kbD: KnowledgeBase = { ...kb, products: [capsule(5000, "vitamin_d", "vitamin_d3")] };
+    const d = recommend({ ...base, labs: { vitaminDNmolL: 30 } }, kbD).items.find((i) => i.supplement.slug === "vitamin_d")!;
+    expect(d.status).toBe("recommended");
+    expect(d.products).toHaveLength(0);
   });
 });
