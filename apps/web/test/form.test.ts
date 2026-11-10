@@ -76,6 +76,8 @@ describe("localized validation", () => {
     const { localeFromAcceptLanguage } = await import("@/lib/i18n/detect");
     expect(localeFromAcceptLanguage("ms-MY,ms;q=0.9,en;q=0.8")).toBe("ms");
     expect(localeFromAcceptLanguage("id-ID,id;q=0.9")).toBe("id");
+    expect(localeFromAcceptLanguage("th-TH,th;q=0.9")).toBe("th");
+    expect(localeFromAcceptLanguage("vi-VN,vi;q=0.9,en;q=0.5")).toBe("vi");
     expect(localeFromAcceptLanguage("zh-CN,en;q=0.5")).toBe("en");
     expect(localeFromAcceptLanguage(null)).toBe("en");
   });

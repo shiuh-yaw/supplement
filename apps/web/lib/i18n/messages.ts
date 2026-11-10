@@ -1,8 +1,10 @@
 /**
- * Website text in English, Bahasa Melayu and Bahasa Indonesia.
- * `ms` and `id` are typed against `en`, so a missing or mismatched string fails the build.
+ * Website text in English, Bahasa Melayu, Bahasa Indonesia, Thai (messages-th.ts) and Vietnamese (messages-vi.ts).
+ * Every language is typed against `en`, so a missing or mismatched string fails the build.
  * Medical wording should be proofread by a native speaker.
  */
+import { th } from "./messages-th";
+import { vi } from "./messages-vi";
 import type { DoseSchedule } from "@supplement/engine";
 
 export const en = {
@@ -809,6 +811,6 @@ export const id: Messages = {
 };
 
 import type { Locale } from "@supplement/engine";
-export const MESSAGES: Record<Locale, Messages> = { en, ms, id };
+export const MESSAGES: Record<Locale, Messages> = { en, ms, id, th, vi };
 /** BCP 47 tags for number and date formatting. */
-export const LOCALE_TAGS: Record<Locale, string> = { en: "en-MY", ms: "ms-MY", id: "id-ID" };
+export const LOCALE_TAGS: Record<Locale, string> = { en: "en-MY", ms: "ms-MY", id: "id-ID", th: "th-TH", vi: "vi-VN" };

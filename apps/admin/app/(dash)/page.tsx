@@ -17,6 +17,7 @@ export default async function Dashboard() {
     prisma.outboundClick.count({ where: { createdAt: { gte: since } } }),
   ]);
   const sampleProducts = await prisma.product.count({ where: { notes: { startsWith: "SAMPLE DATA" } } });
+  const unverified = await prisma.product.count({ where: { active: false, notes: { startsWith: "UNVERIFIED" } } });
 
   const stats = [
     { label: "Checks (30 days)", value: events },
@@ -33,6 +34,13 @@ export default async function Dashboard() {
       {sampleProducts > 0 && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
           {sampleProducts} sample products are still in the catalog. Replace them with real, verified products before launch.
+        </p>
+      )}
+      {unverified > 0 && (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          {unverified} researched products for SG, ID, TH, PH and VN are waiting to be checked. They're inactive until someone
+          confirms the price, label and registration on the shop page.{" "}
+          <Link href="/products" className="underline">Open products</Link>
         </p>
       )}
       {problems.length > 0 && (

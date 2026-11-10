@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma, writeAudit, type RuleEffect, type RuleStatus } from "@supplement/db";
-import { validateCondition } from "@supplement/engine";
+import { TRANSLATED_LOCALES, validateCondition } from "@supplement/engine";
 import { can, requireUser } from "@/lib/auth";
 import { guard, type ActionState } from "@/lib/action";
 
@@ -41,7 +41,7 @@ export async function saveRule(_prev: ActionState, formData: FormData): Promise<
     if (errors.length) return { error: errors };
 
     const translations: Record<string, string> = {};
-    for (const loc of ["ms", "id"]) {
+    for (const loc of TRANSLATED_LOCALES) {
       const v = String(formData.get(`message_${loc}`) ?? "").trim();
       if (v) translations[loc] = v;
     }

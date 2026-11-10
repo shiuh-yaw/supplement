@@ -1,8 +1,18 @@
+import { TH_ENGINE } from "./locales/th";
+import { VI_ENGINE } from "./locales/vi";
 import type { DoseSchedule } from "./types";
 
-export const LOCALES = ["en", "ms", "id"] as const;
+export const LOCALES = ["en", "ms", "id", "th", "vi"] as const;
+/** Languages other than English (the knowledge base's main language). */
+export const TRANSLATED_LOCALES = ["ms", "id", "th", "vi"] as const;
 export type Locale = (typeof LOCALES)[number];
-export const LOCALE_NAMES: Record<Locale, string> = { en: "English", ms: "Bahasa Melayu", id: "Bahasa Indonesia" };
+export const LOCALE_NAMES: Record<Locale, string> = {
+  en: "English",
+  ms: "Bahasa Melayu",
+  id: "Bahasa Indonesia",
+  th: "ไทย",
+  vi: "Tiếng Việt",
+};
 export const isLocale = (v: unknown): v is Locale => typeof v === "string" && (LOCALES as readonly string[]).includes(v);
 
 /** Everything the engine itself writes for people. KB content (rules, supplements) is translated in the database. */
@@ -202,6 +212,6 @@ const id: EngineMessages = {
   },
 };
 
-export const ENGINE_MESSAGES: Record<Locale, EngineMessages> = { en, ms, id };
+export const ENGINE_MESSAGES: Record<Locale, EngineMessages> = { en, ms, id, th: TH_ENGINE, vi: VI_ENGINE };
 export const msgs = (locale: Locale = "en") => ENGINE_MESSAGES[locale];
 export const unitLabel = (unit: string, locale: Locale = "en") => msgs(locale).units[unit] ?? unit;

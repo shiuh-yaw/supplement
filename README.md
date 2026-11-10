@@ -83,6 +83,13 @@ Rule conditions are a small JSON language:
 Unknown values (e.g. no lab result) never match a comparison; use `notExists` to target missing data. The rule
 editor lists every fact and validates conditions before saving.
 
+## Products outside Malaysia
+
+`packages/db/prisma/catalog-sea.ts` holds products researched for SG, ID, TH, PH and VN. The retailer pages couldn't be
+opened during research, so the seed adds them **inactive** with notes starting `UNVERIFIED —`, and the dashboard counts
+them. Check each one on the shop page, correct it, and tick *Active*. Prices for SG/PH/TH/ID were also added to a few
+Malaysian products sold there.
+
 ## Affiliate links
 
 Buy links on the results page go through `/go/<productId>?c=<country>`. That route looks the link up in the catalog
@@ -98,16 +105,17 @@ recommendation, ranking or dosing code ever references it. The website discloses
 
 ## Languages
 
-The website is in **English, Bahasa Melayu and Bahasa Indonesia**. The language comes from a `lang` cookie
-(set by the switcher in the header), else the browser's language, else English.
+The website is in **English, Bahasa Melayu, Bahasa Indonesia, Thai and Vietnamese**. The language comes from a `lang`
+cookie (set by the switcher in the header), else the browser's language, else English. Filipino isn't included: English
+is widely used for health information in the Philippines.
 
-- **Website text:** `apps/web/lib/i18n/messages.ts`. `ms` and `id` are type-checked against `en`, so a
-  missing string fails the build.
+- **Website text:** `apps/web/lib/i18n/messages.ts` (en, ms, id), `messages-th.ts`, `messages-vi.ts`. Every language is
+  type-checked against `en`, so a missing string fails the build.
 - **Engine text** (dose wording, reasons, product notes, labels): `packages/engine/src/i18n.ts` and
-  `labels.ts`. `recommend(profile, kb, { locale })`.
+  `labels.ts`; Thai and Vietnamese, including the starter rules and supplements, in `packages/engine/src/locales/`. `recommend(profile, kb, { locale })`.
 - **Rules and supplements:** each has a `translations` field, edited in the backoffice ("Message in Bahasa
   Melayu / Indonesia"; translated name, summary, timing and notes). Empty fields fall back to English. The
-  seed fills the starter translations only where a row has none.
+  seed adds a starter translation only for languages a row doesn't have yet.
 
 The translations were written without a native-speaker review; have the medical wording proofread.
 
@@ -185,10 +193,10 @@ Any other host that runs Dockerfiles works the same way. Build from the reposito
 
 ## Roadmap
 
-1. **Done:** 7 supplements with lab-based safety rules, report upload with AI transcription, unit
+1. **Done:** five languages, affiliate links with disclosure, 7 supplements with lab-based safety rules, report upload with AI transcription, unit
    handling, "what I already take" checks, device history, calendar reminders, installable web app,
    backoffice with review workflow.
-2. **Next:** Bahasa Malaysia / Bahasa Indonesia, then Thai / Vietnamese; optional accounts to sync history
-   across devices (with explicit consent); supplement label scanning.
+2. **Next:** see the roadmap page linked from the latest pull request: verify the SG/ID/TH/PH/VN catalog, add
+   marketplace links for affiliate revenue, optional accounts with consent, pharmacist hand-off, label scanning.
 3. **Later:** AI Q&A grounded on the user's own plan and the evidence library; partnerships to book blood
    tests or a dietitian (e.g. Halodoc, Pathlab, BP Healthcare, Prodia).

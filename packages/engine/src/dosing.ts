@@ -3,7 +3,7 @@ import type { Dose, DoseSchedule, DosingConfig, UserProfile } from "./types";
 
 /** Thousands separator: comma in English and Malay, dot in Indonesian. */
 export const groupDigits = (n: string, locale: Locale = "en") =>
-  n.replace(/\B(?=(\d{3})+(?!\d))/g, locale === "id" ? "." : ",");
+  n.replace(/\B(?=(\d{3})+(?!\d))/g, locale === "id" || locale === "vi" ? "." : ",");
 
 export function doseText(min: number, max: number, unit: string, schedule: DoseSchedule, locale: Locale = "en"): string {
   const amount = min === max ? `${min}` : `${min}–${max}`;
