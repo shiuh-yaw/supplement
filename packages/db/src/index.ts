@@ -114,6 +114,7 @@ export async function loadKnowledgeBase(options: LoadOptions = {}): Promise<Load
     vegan: p.vegan,
     halalCertified: p.halalCertified,
     certifications: p.certifications,
+    registrationNo: p.registrationNo,
     prices: p.prices.map((pr) => ({
       country: pr.country as Country,
       currency: pr.currency,

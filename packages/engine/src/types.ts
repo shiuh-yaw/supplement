@@ -238,6 +238,8 @@ export interface Product {
   halalCertified: boolean;
   /** Third-party testing programmes, e.g. "Informed Sport", "NSF Certified for Sport". */
   certifications: string[];
+  /** Local registration / notification number (MAL…, BPOM, Thai FDA อย., PH FDA, VN công bố), if known. Display only. */
+  registrationNo?: string | null;
   prices: ProductPrice[];
 }
 

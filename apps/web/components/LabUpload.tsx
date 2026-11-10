@@ -13,13 +13,15 @@ export interface ExtractResult {
 }
 
 /** "Upload your lab report" — reads the numbers with AI so the user only has to check them. */
-export function LabUpload({ onExtract }: { onExtract: (result: ExtractResult) => void }) {
+export function LabUpload({ onExtract, country }: { onExtract: (result: ExtractResult) => void; country: string }) {
   const m = useI18n().m.upload;
   const testName = (en: string) => {
     const key = Object.keys(m.tests).find((k) => en === k || en.startsWith(`${k} (`));
     return key ? en.replace(key, m.tests[key]!) : en;
   };
   const [enabled, setEnabled] = useState(false);
+  const [offCountries, setOffCountries] = useState<string[]>([]);
+  const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<ExtractResult | null>(null);
@@ -28,19 +30,29 @@ export function LabUpload({ onExtract }: { onExtract: (result: ExtractResult) =>
   useEffect(() => {
     fetch("/api/extract-labs")
       .then((r) => r.json())
-      .then((d: { enabled?: boolean }) => setEnabled(Boolean(d.enabled)))
+      .then((d: { enabled?: boolean; offCountries?: string[] }) => {
+        setEnabled(Boolean(d.enabled));
+        setOffCountries(d.offCountries ?? []);
+      })
       .catch(() => setEnabled(false));
   }, []);
 
-  if (!enabled) return null;
+  if (!enabled || offCountries.includes(country)) return null;
 
   async function upload(file: File) {
+    if (!consent) {
+      setError(m.errors.noConsent);
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
     setBusy(true);
     setError(null);
     setSummary(null);
     try {
       const body = new FormData();
       body.append("file", file);
+      body.append("consent", "yes");
+      body.append("country", country);
       const res = await fetch("/api/extract-labs", { method: "POST", body });
       const data = await res.json();
       if (!res.ok) throw new Error((data.code && m.errors[data.code as keyof typeof m.errors]) || data.error || m.errors.failed);
@@ -63,14 +75,21 @@ export function LabUpload({ onExtract }: { onExtract: (result: ExtractResult) =>
     <div className="mt-3 rounded-xl border border-dashed border-brand-500 bg-brand-50 p-4 text-sm">
       <p className="font-semibold text-brand-700">{m.title}</p>
       <p className="mt-1 text-xs text-slate-600">{m.body}</p>
-      <label className={`btn-primary mt-3 cursor-pointer ${busy ? "pointer-events-none opacity-60" : ""}`}>
+      <label className="mt-3 flex items-start gap-2 text-xs text-slate-700">
+        <input id="upload-consent" type="checkbox" className="mt-0.5 accent-brand-600" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+        <span>{m.consent}</span>
+      </label>
+      <label
+        className={`btn-primary mt-3 cursor-pointer ${busy || !consent ? "pointer-events-none opacity-60" : ""}`}
+        aria-disabled={!consent || busy}
+      >
         {busy ? m.reading : m.button}
         <input
           ref={inputRef}
           type="file"
           accept="application/pdf,image/jpeg,image/png,image/webp"
           className="sr-only"
-          disabled={busy}
+          disabled={busy || !consent}
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) void upload(f);

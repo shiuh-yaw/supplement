@@ -43,6 +43,9 @@ Other commands: `pnpm test` (engine tests), `pnpm typecheck`, `pnpm build`, `pnp
      *transcribes* values and units into a strict JSON schema. The form is filled and highlighted for the user
      to check; unknown units are skipped, never guessed. The file is never stored. Needs `ANTHROPIC_API_KEY`;
      without it the upload button simply doesn't appear. Rate-limited to 6 uploads per IP per 10 minutes.
+     People must tick an explicit consent (naming Anthropic and the United States) before a file is sent; the API
+     refuses uploads without it. `LAB_UPLOAD_OFF_COUNTRIES` (default `VN`) switches upload off where a cross-border
+     transfer of health data needs more paperwork first (Vietnam's Decree 356 transfer assessment).
 2. **Rules** (stored in the DB, edited in the backoffice) are evaluated against the profile. Each rule has an
    effect:
    - `BLOCK` – the supplement (or all supplements, for global rules) is not recommended; the user is
