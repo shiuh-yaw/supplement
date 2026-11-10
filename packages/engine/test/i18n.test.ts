@@ -65,3 +65,11 @@ describe("engine output follows the locale", () => {
     expect(recommend(vegan, kb).disclaimer).toMatch(/not medical advice/);
   });
 });
+
+describe("product notes keep Indonesian capitalisation", () => {
+  it("lowercases only the first letter of the reason", () => {
+    const r = recommend({ age: 30, sex: "male", weightKg: 70, country: "VN", goal: "strength", trainingDaysPerWeek: 4, diet: "omnivore" }, kb, { locale: "id" });
+    const protein = r.items.find((i) => i.supplement.slug === "protein")!;
+    expect(protein.productsNote).toContain("tidak dijual di negara Anda");
+  });
+});

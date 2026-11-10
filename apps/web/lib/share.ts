@@ -1,4 +1,5 @@
 import { userProfileSchema, type UserProfileInput } from "@supplement/engine";
+import { en, type Messages } from "./i18n/messages";
 
 /**
  * Share links carry the answers in the URL *fragment* (`#r=...`). Browsers never
@@ -57,12 +58,12 @@ export function readSharedProfile(hash: string): UserProfileInput | null {
 }
 
 /** "Buy on Shopee" etc., from the link's host. */
-export function marketplaceLabel(url: string): string {
+export function marketplaceLabel(url: string, m: Messages["results"] = en.results): string {
   let host = "";
   try {
     host = new URL(url).hostname.toLowerCase();
   } catch {
-    return "Where to buy";
+    return m.whereToBuy;
   }
   const known: [RegExp, string][] = [
     [/(^|\.)shopee\./, "Shopee"],
@@ -74,5 +75,5 @@ export function marketplaceLabel(url: string): string {
     [/(^|\.)guardian\./, "Guardian"],
   ];
   const hit = known.find(([re]) => re.test(host));
-  return hit ? `Buy on ${hit[1]}` : "Where to buy";
+  return hit ? m.buyOn(hit[1]) : m.whereToBuy;
 }

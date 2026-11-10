@@ -18,6 +18,18 @@ export async function saveSupplement(_prev: ActionState, formData: FormData): Pr
       summary: String(formData.get("summary") ?? "").trim(),
       timing: String(formData.get("timing") ?? "").trim(),
       notes: String(formData.get("notes") ?? "").split("\n").map((s) => s.trim()).filter(Boolean),
+      translations: Object.fromEntries(
+        ["ms", "id"].map((loc) => {
+          const text = (k: string) => String(formData.get(`${k}_${loc}`) ?? "").trim();
+          const t = {
+            name: text("name"),
+            summary: text("summary"),
+            timing: text("timing"),
+            notes: text("notes").split("\n").map((s) => s.trim()).filter(Boolean),
+          };
+          return [loc, t];
+        }),
+      ),
       active: formData.get("active") === "on",
       sortOrder: Number(formData.get("sortOrder") ?? 0),
     };

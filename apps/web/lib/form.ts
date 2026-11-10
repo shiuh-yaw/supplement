@@ -15,6 +15,7 @@ import {
   type MedicationClass,
   type UserProfileInput,
 } from "@supplement/engine";
+import { en, type Messages } from "./i18n/messages";
 
 export type ProteinMode = "grams" | "portions" | "unknown";
 
@@ -205,25 +206,25 @@ export function toProfile(f: FormState): UserProfileInput {
 const isNumber = (v: string) => v.trim() !== "" && Number.isFinite(Number(v));
 
 /** Every problem with the form, keyed by field, with a message that says how to fix it. */
-export function validate(f: FormState): FieldErrors {
+export function validate(f: FormState, m: Messages["errors"] = en.errors): FieldErrors {
   const e: FieldErrors = {};
 
   const age = Number(f.age);
-  if (!isNumber(f.age) || !Number.isInteger(age) || age < 10 || age > 110) e.age = "Enter your age in years (10–110).";
-  if (!f.sex) e.sex = "Choose one.";
+  if (!isNumber(f.age) || !Number.isInteger(age) || age < 10 || age > 110) e.age = m.age;
+  if (!f.sex) e.sex = m.sex;
   const weight = Number(f.weightKg);
-  if (!isNumber(f.weightKg) || weight < 25 || weight > 300) e.weightKg = "Enter your weight in kg (25–300).";
+  if (!isNumber(f.weightKg) || weight < 25 || weight > 300) e.weightKg = m.weight;
 
-  if (!f.goal) e.goal = "Choose your main goal.";
+  if (!f.goal) e.goal = m.goal;
 
   if (f.proteinMode === "grams") {
     const g = Number(f.dietaryProteinG);
     if (!isNumber(f.dietaryProteinG) || g < 0 || g > 500) {
-      e.dietaryProteinG = "Enter grams of protein per day (0–500), or choose “Estimate for me”.";
+      e.dietaryProteinG = m.protein;
     }
   }
   if (f.monthlyBudget.trim() !== "" && (!isNumber(f.monthlyBudget) || Number(f.monthlyBudget) < 0)) {
-    e.monthlyBudget = "Enter a number, or leave it blank.";
+    e.monthlyBudget = m.budget;
   }
 
   for (const key of ["egfr", "altUL", "hba1cPercent", "ferritinUgL"] as const) {
@@ -231,7 +232,7 @@ export function validate(f: FormState): FieldErrors {
     const r = LAB_RANGES[key];
     const v = Number(f[key]);
     if (!isNumber(f[key]) || v < r.min || v > r.max) {
-      e[key] = `Expected a number between ${r.min} and ${r.max} ${r.unit}. Check your report, or leave it blank.`;
+      e[key] = m.labRange(r.min, r.max, r.unit);
     }
   }
 
@@ -239,24 +240,24 @@ export function validate(f: FormState): FieldErrors {
     if (f[key].trim() === "") continue;
     const unit = labUnit(f, key);
     if (!isNumber(f[key])) {
-      e[key] = "Enter a number, or leave it blank.";
+      e[key] = m.labNumber;
       continue;
     }
     const raw = Number(f[key]);
     const other = suggestOtherUnit(key, raw, unit);
     if (other) {
-      e[key] = `${raw} ${labUnitLabel(key, unit)} is unusual. Your report probably uses ${labUnitLabel(key, other)} — switch the unit above.`;
+      e[key] = m.labUnusual(raw, labUnitLabel(key, unit), labUnitLabel(key, other));
       continue;
     }
     const si = toSi(key, raw, unit);
     const r = LAB_RANGES[key];
     if (si < r.min || si > r.max) {
       const [lo, hi] = LAB_UNIT_SPECS[key].typical[unit];
-      e[key] = `That value is out of range. Typical is ${lo}–${hi} ${labUnitLabel(key, unit)}. Check the unit on your report, or leave it blank.`;
+      e[key] = m.labOutOfRange(lo, hi, labUnitLabel(key, unit));
     }
   }
 
-  if (!f.consent) e.consent = "Please tick this box to see your results.";
+  if (!f.consent) e.consent = m.consent;
   return e;
 }
 

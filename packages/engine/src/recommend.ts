@@ -91,7 +91,8 @@ export function recommend(input: UserProfileInput, kb: KnowledgeBase, options: R
     let productsNote: string | null = null;
     if (products.length === 0) {
       const { excluded } = filterProducts(candidates, profile, locale);
-      const why = [...new Set(excluded.map((e) => e.reason.toLowerCase()))];
+      // Lowercase only the first letter: Indonesian capitalises "Anda" mid-sentence.
+      const why = [...new Set(excluded.map((e) => e.reason.charAt(0).toLowerCase() + e.reason.slice(1)))];
       productsNote = candidates.length === 0 ? m.noProducts : m.noMatch(why.join("; "));
     }
 

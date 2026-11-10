@@ -64,3 +64,19 @@ describe("new lab fields", () => {
     expect(toProfile({ ...form, diet: "vegan" }).fishServingsPerWeek).toBeUndefined();
   });
 });
+
+describe("localized validation", () => {
+  it("returns messages in the chosen language", async () => {
+    const { ms, id } = await import("@/lib/i18n/messages");
+    expect(validate({ ...initialForm }, ms.errors).age).toBe("Masukkan umur anda dalam tahun (10–110).");
+    expect(validate({ ...valid, country: "MY", creatinineUmolL: "0.9" }, id.errors).creatinineUmolL).toMatch(/Hasil lab Anda mungkin memakai mg\/dL/);
+  });
+
+  it("picks the language from the browser", async () => {
+    const { localeFromAcceptLanguage } = await import("@/lib/i18n/detect");
+    expect(localeFromAcceptLanguage("ms-MY,ms;q=0.9,en;q=0.8")).toBe("ms");
+    expect(localeFromAcceptLanguage("id-ID,id;q=0.9")).toBe("id");
+    expect(localeFromAcceptLanguage("zh-CN,en;q=0.5")).toBe("en");
+    expect(localeFromAcceptLanguage(null)).toBe("en");
+  });
+});

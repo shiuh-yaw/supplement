@@ -83,6 +83,21 @@ Rule conditions are a small JSON language:
 Unknown values (e.g. no lab result) never match a comparison; use `notExists` to target missing data. The rule
 editor lists every fact and validates conditions before saving.
 
+## Languages
+
+The website is in **English, Bahasa Melayu and Bahasa Indonesia**. The language comes from a `lang` cookie
+(set by the switcher in the header), else the browser's language, else English.
+
+- **Website text:** `apps/web/lib/i18n/messages.ts`. `ms` and `id` are type-checked against `en`, so a
+  missing string fails the build.
+- **Engine text** (dose wording, reasons, product notes, labels): `packages/engine/src/i18n.ts` and
+  `labels.ts`. `recommend(profile, kb, { locale })`.
+- **Rules and supplements:** each has a `translations` field, edited in the backoffice ("Message in Bahasa
+  Melayu / Indonesia"; translated name, summary, timing and notes). Empty fields fall back to English. The
+  seed fills the starter translations only where a row has none.
+
+The translations were written without a native-speaker review; have the medical wording proofread.
+
 ## Backoffice roles & review workflow
 
 | Role | Can |

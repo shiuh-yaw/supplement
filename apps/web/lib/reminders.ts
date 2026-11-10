@@ -1,5 +1,6 @@
 import type { RecommendationResult } from "@supplement/engine";
 import { APP_NAME } from "./site";
+import { en, type Messages } from "./i18n/messages";
 
 /**
  * Builds an .ics calendar file with repeating reminders for the recommended
@@ -10,7 +11,12 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const icsDate = (d: Date) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
 const escape = (s: string) => s.replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 
-export function buildReminderIcs(result: RecommendationResult, time = "08:00", start = new Date()): string | null {
+export function buildReminderIcs(
+  result: RecommendationResult,
+  time = "08:00",
+  start = new Date(),
+  m: Messages["reminders"] = en.reminders,
+): string | null {
   const recommended = result.items.filter((i) => i.status === "recommended" && i.dose);
   const daily = recommended.filter((i) => i.dose!.schedule === "daily");
   const alternate = recommended.filter((i) => i.dose!.schedule === "every_other_day");
@@ -41,11 +47,11 @@ export function buildReminderIcs(result: RecommendationResult, time = "08:00", s
 
   const events: string[] = [];
   if (daily.length) {
-    events.push(event("daily", `Take: ${daily.map((i) => i.supplement.name).join(", ")}`, daily, "FREQ=DAILY"));
+    events.push(event("daily", m.daily(daily.map((i) => i.supplement.name).join(", ")), daily, "FREQ=DAILY"));
   }
   if (alternate.length) {
     events.push(
-      event("alternate", `Take (every other day): ${alternate.map((i) => i.supplement.name).join(", ")}`, alternate, "FREQ=DAILY;INTERVAL=2"),
+      event("alternate", m.alternate(alternate.map((i) => i.supplement.name).join(", ")), alternate, "FREQ=DAILY;INTERVAL=2"),
     );
   }
   return [

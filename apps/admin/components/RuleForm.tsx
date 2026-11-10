@@ -13,6 +13,7 @@ export interface RuleFormValues {
   effect: string;
   priority: number;
   message: string;
+  translations?: unknown;
   condition: unknown;
 }
 
@@ -65,8 +66,26 @@ export function RuleForm({
             </div>
           </div>
           <div>
-            <label className="label" htmlFor="message">Message shown to the user</label>
+            <label className="label" htmlFor="message">Message shown to the user (English)</label>
             <textarea id="message" name="message" rows={3} className="input" defaultValue={rule?.message} />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {([
+              ["ms", "Bahasa Melayu"],
+              ["id", "Bahasa Indonesia"],
+            ] as const).map(([loc, name]) => (
+              <div key={loc}>
+                <label className="label" htmlFor={`message_${loc}`}>Message in {name}</label>
+                <textarea
+                  id={`message_${loc}`}
+                  name={`message_${loc}`}
+                  rows={3}
+                  className="input"
+                  placeholder="Leave empty to show the English message"
+                  defaultValue={((rule?.translations ?? {}) as Record<string, string>)[loc] ?? ""}
+                />
+              </div>
+            ))}
           </div>
           <div>
             <label className="label" htmlFor="condition">Condition (JSON)</label>
