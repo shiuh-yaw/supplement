@@ -169,8 +169,8 @@ describe("servings per day", () => {
     // Dose 30–60 g protein; isolate has 27 g protein per scoop → 1–2 scoops.
     const isolate = item(base, "protein").products.find((p) => p.product.id === "sample-whey-isolate");
     expect(isolate?.servingsPerDose).toEqual({ min: 1, max: 2 });
-    // Creatine 3–5 g; 5 g per scoop → ½–1 scoop.
+    // Creatine 3–5 g; one 5 g scoop already covers the dose → 1 scoop.
     const creatine = item(base, "creatine").products[0];
-    expect(creatine?.servingsPerDose).toEqual({ min: 0.5, max: 1 });
+    expect(creatine?.servingsPerDose).toEqual({ min: 1, max: 1 });
   });
 });

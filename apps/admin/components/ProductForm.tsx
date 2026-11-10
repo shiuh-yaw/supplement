@@ -71,7 +71,7 @@ export function ProductForm({
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {([
-          ["servingSizeG", "Serving size (g)"],
+          ["servingSizeG", unit.startsWith("g") ? "Serving size (g)" : "Serving weight (g, 0 if unknown)"],
           ["activePerServingG", `Active amount per serving (${unit})`],
           ["sugarPerServingG", "Sugar per serving (g)"],
           ["servingsPerContainer", "Servings per container"],

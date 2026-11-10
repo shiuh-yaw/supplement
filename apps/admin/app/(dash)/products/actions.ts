@@ -41,11 +41,12 @@ export async function saveProduct(_prev: ActionState, formData: FormData): Promi
     if (!data.supplementId) errors.push("Choose a supplement.");
     if (!data.brand || !data.name) errors.push("Brand and name are required.");
     if (!PRODUCT_FORMS.includes(data.form as (typeof PRODUCT_FORMS)[number])) errors.push("Choose a form.");
-    if (!(data.servingSizeG > 0)) errors.push("Serving size must be > 0.");
     const supplement = data.supplementId
       ? await prisma.supplement.findUnique({ where: { id: data.supplementId }, select: { dosing: true } })
       : null;
     const unit = doseUnitOf(supplement?.dosing);
+    if (Number.isNaN(data.servingSizeG) || data.servingSizeG < 0) errors.push("Serving size can't be negative.");
+    else if (unit.startsWith("g") && !(data.servingSizeG > 0)) errors.push("Serving size (g) is required for powders.");
     if (!(data.activePerServingG > 0)) errors.push("Active amount per serving must be greater than 0.");
     else if (unit.startsWith("g") && data.activePerServingG > data.servingSizeG)
       errors.push("Active amount per serving can't be larger than the serving itself.");

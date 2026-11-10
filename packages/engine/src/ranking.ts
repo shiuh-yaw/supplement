@@ -24,16 +24,16 @@ function exclusionReason(product: Product, profile: UserProfile): string | null 
   if (!product.prices.some((p) => p.country === profile.country)) return "Not sold in your country";
   const allergen = product.allergens.find((a) => profile.allergies.includes(a));
   if (allergen) return `Contains ${allergen.replace("_", " ")}`;
-  if (profile.diet === "vegan" && !product.vegan) return "Not vegan";
+  if (profile.diet === "vegan" && !product.vegan) return "Not confirmed vegan";
   if (profile.lactoseIntolerant && HIGH_LACTOSE_FORMS.has(product.form)) return "Contains lactose";
-  if (profile.halalRequired && !product.halalCertified) return "Not halal certified";
+  if (profile.halalRequired && !product.halalCertified) return "Not confirmed halal";
   return null;
 }
 
 const WEIGHTS = { testing: 35, cost: 35, quality: 15, fit: 15 } as const;
 
 export function rankProducts(products: Product[], profile: UserProfile, dose: Dose): RankedProduct[] {
-  const { eligible } = filterProducts(products, profile);
+  const eligible = filterProducts(products, profile).eligible.filter((p) => !tooStrong(dose, p));
   if (eligible.length === 0) return [];
 
   // Use the middle of the dose range for cost estimates, averaged per day.
@@ -102,6 +102,11 @@ export function rankProducts(products: Product[], profile: UserProfile, dose: Do
     score += WEIGHTS.fit * Math.max(fit, 0);
 
     if (product.halalCertified) reasons.push("Halal certified");
+    if (exceedsDose(dose, product)) {
+      reasons.push(
+        `One serving has ${product.activePerServingG.toLocaleString("en")} ${dose.unit} — more than the ${dose.max.toLocaleString("en")} ${dose.unit} suggested`,
+      );
+    }
     if (profile.lactoseIntolerant && product.form === "whey_isolate") {
       reasons.push("Isolate — usually under 1 g lactose per serving; start with a small dose");
     }
@@ -140,6 +145,7 @@ function qualityOf(product: Product): { score: number; reason?: string } {
     default:
       return { score: 0.7 };
   }
+  if (!(product.servingSizeG > 0)) return { score: 0.6 };
   const ratio = product.activePerServingG / product.servingSizeG;
   if (ratio >= 0.8) return { score: 1, reason: `${Math.round(ratio * 100)}% protein by weight` };
   if (ratio >= 0.7) return { score: 0.6, reason: `${Math.round(ratio * 100)}% protein by weight` };
@@ -148,11 +154,41 @@ function qualityOf(product: Product): { score: number; reason?: string } {
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-/** Servings needed per day, rounded to the nearest half serving (at least ½). */
+/**
+ * Supplements where a product stronger than the suggested dose is still fine to
+ * recommend (no upper limit has been set). For everything else, a product more
+ * than twice the suggested dose per serving is left out.
+ */
+const HIGH_STRENGTH_OK = new Set(["vitamin_b12"]);
+const exceedsDose = (dose: Dose, product: Product) => product.activePerServingG > dose.max * 1.05;
+export const tooStrong = (dose: Dose, product: Product) =>
+  !HIGH_STRENGTH_OK.has(product.supplementSlug) && product.activePerServingG > dose.max * 2;
+
+/** Forms you can measure part of (powders); everything else is taken in whole capsules or tablets. */
+const DIVISIBLE_FORMS = new Set([
+  "whey_isolate",
+  "whey_concentrate",
+  "casein",
+  "milk_protein",
+  "plant_blend",
+  "soy",
+  "pea",
+  "egg_white",
+  "creatine_monohydrate",
+  "creatine_hcl",
+  "creatine_other",
+  "electrolyte_powder",
+]);
+
+/**
+ * Servings per dose: half scoops for powders, whole units for capsules and tablets,
+ * and one serving if a single one already covers the dose.
+ */
 export function servingsFor(dose: Dose, product: Product): { min: number; max: number } {
-  const half = (n: number) => Math.max(0.5, Math.round(n * 2) / 2);
-  return {
-    min: half(dose.min / product.activePerServingG),
-    max: half(dose.max / product.activePerServingG),
-  };
+  if (product.activePerServingG >= dose.max) return { min: 1, max: 1 };
+  const round = DIVISIBLE_FORMS.has(product.form)
+    ? (n: number) => Math.max(0.5, Math.round(n * 2) / 2)
+    : (n: number) => Math.max(1, Math.round(n));
+  const min = round(dose.min / product.activePerServingG);
+  return { min, max: Math.max(min, round(dose.max / product.activePerServingG)) };
 }
