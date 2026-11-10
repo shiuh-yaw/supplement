@@ -82,7 +82,7 @@ function ProductRow({ ranked, rank, dose, ingredient }: { ranked: RankedProduct;
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
         <span>{m.score(ranked.score)}</span>
         {price.url && (
-          <a href={price.url} target="_blank" rel="noopener noreferrer sponsored" className="btn-ghost px-3 py-1.5 text-xs print:hidden">
+          <a href={`/go/${encodeURIComponent(product.id)}?c=${price.country}`} target="_blank" rel="noopener sponsored nofollow" className="btn-ghost px-3 py-1.5 text-xs print:hidden">
             {marketplaceLabel(price.url, m)} ↗
           </a>
         )}
@@ -148,7 +148,8 @@ function SupplementCard({ item }: { item: SupplementRecommendation }) {
               </ol>
               {top.some((p) => p.price.url) && (
                 <p className="mt-2 text-xs text-slate-500 print:hidden">
-                  {m.commission}
+                  {m.commission}{" "}
+                  <a href="/how-it-works#money" className="underline">{m.howWeChoose}</a>
                 </p>
               )}
             </>

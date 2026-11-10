@@ -163,3 +163,30 @@ model RecommendationEvent {
 
   @@index([createdAt])
 }
+
+/// Affiliate program for one marketplace host. Applied only when someone clicks
+/// a buy link; never used for ranking.
+model AffiliateProgram {
+  id        String   @id @default(cuid())
+  /// Display name, e.g. "Shopee Malaysia"
+  name      String
+  /// Hostname, e.g. shopee.com.my (also covers subdomains)
+  host      String   @unique
+  /// https://… template with {url} (and optional {sub}), or query parameters to add
+  template  String
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Anonymous count of buy-link clicks. No IP, no profile, no cookie.
+model OutboundClick {
+  id        String   @id @default(cuid())
+  productId String
+  country   String
+  host      String
+  affiliate Boolean
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

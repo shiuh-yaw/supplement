@@ -83,6 +83,19 @@ Rule conditions are a small JSON language:
 Unknown values (e.g. no lab result) never match a comparison; use `notExists` to target missing data. The rule
 editor lists every fact and validates conditions before saving.
 
+## Affiliate links
+
+Buy links on the results page go through `/go/<productId>?c=<country>`. That route looks the link up in the catalog
+(so it can't redirect anywhere else), adds the affiliate code if a program covers the shop, counts the click
+anonymously (product, country, shop; no IP or profile) and redirects. Set programs up in the backoffice under
+**Affiliate links** (admins only): a deep-link template from the shop's affiliate dashboard with `{url}` and optional
+`{sub}` (e.g. `sukat_protein`), or parameters to add (e.g. `rcode=ABC123`). The page lists every shop the catalog links
+to, whether a program covers it, and clicks in the last 30 days.
+
+Affiliate code lives in `packages/engine/src/affiliate.ts` and is applied only after the click: a test fails if the
+recommendation, ranking or dosing code ever references it. The website discloses it under every product list and on
+`/how-it-works`.
+
 ## Languages
 
 The website is in **English, Bahasa Melayu and Bahasa Indonesia**. The language comes from a `lang` cookie

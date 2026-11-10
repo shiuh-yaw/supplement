@@ -13,7 +13,11 @@ const NAV = [
 
 export default async function DashLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
-  const nav = can(user.role, "users:manage") ? [...NAV, { href: "/users", label: "Users" }] : NAV;
+  const nav = [
+    ...NAV,
+    ...(can(user.role, "affiliate:manage") ? [{ href: "/affiliate", label: "Affiliate links" }] : []),
+    ...(can(user.role, "users:manage") ? [{ href: "/users", label: "Users" }] : []),
+  ];
 
   return (
     <div className="min-h-screen md:flex">

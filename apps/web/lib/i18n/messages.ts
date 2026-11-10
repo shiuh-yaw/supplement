@@ -11,6 +11,7 @@ export const en = {
     startCheck: "Start check",
     myChecks: "My checks",
     language: "Language",
+    howItWorks: "How Sukat works",
     footer:
       "General education only — not medical advice. Always check with your doctor, dietitian or pharmacist. We don't sell supplements, and product rankings are never based on commission.",
     metaDescription:
@@ -149,6 +150,7 @@ export const en = {
     why: "Why",
     productsFit: "Products that fit you",
     commission: "Shop links may earn us a small commission at no cost to you. It never changes the ranking.",
+    howWeChoose: "How we choose",
     research: "Research",
     perMonth: (amount: string) => `≈ ${amount}/month at your dose`,
     score: (n: number) => `Match score ${n}/100`,
@@ -238,6 +240,36 @@ export const en = {
     daily: (names: string) => `Take: ${names}`,
     alternate: (names: string) => `Take (every other day): ${names}`,
   },
+  how: {
+    title: "How Sukat works",
+    lede: "What happens to your answers, how products are ranked, and how Sukat is paid for.",
+    sections: [
+      { id: "recommend", title: "How a recommendation is made", body: [
+        "Your answers go through safety rules first. Kidney or liver disease, pregnancy, some medicines and some lab results can hold a supplement back. When that happens we ask you to see a doctor, and safety always wins over any recommendation.",
+        "Then we check which supplements fit your goal, diet and results, and work out a dose. For protein we only suggest the gap between what you already eat and what your goal needs.",
+        "The rules are based on published research, such as the ISSN position stands, and are reviewed before they go live. Every change is logged.",
+      ] },
+      { id: "ranking", title: "How products are ranked", body: [
+        "We only show products sold in your country that match your allergies, diet and halal needs.",
+        "Each product is scored on independent third-party testing (35%), value per gram of the active ingredient (35%), formulation quality (15%) and fit for you, such as sugar and budget (15%).",
+        "Brands can't pay to be listed or to rank higher.",
+      ] },
+      { id: "money", title: "How Sukat makes money", body: [
+        "Sukat is free. Some \"Buy on…\" links are affiliate links: if you buy, the shop may pay us a small commission, at no extra cost to you.",
+        "The commission code is added only after you click. Recommendations and rankings are worked out without it, and our tests check that this stays true.",
+        "We don't sell supplements and we don't take payment from brands.",
+      ] },
+      { id: "privacy", title: "Your privacy", body: [
+        "We don't store your answers, health conditions or lab results on our server. Checks you save stay on this device.",
+        "Shared links carry your answers in the part of the link after #, which browsers never send to us.",
+        "If you upload a lab report, it's read once to fill in the form and isn't kept.",
+        "We keep anonymous counts only: country, goal, which supplements were suggested and which shop links were clicked.",
+      ] },
+      { id: "limits", title: "What Sukat is not", body: [
+        "Sukat is general education, not medical advice or a diagnosis. Talk to your doctor, dietitian or pharmacist before starting a supplement, especially if you have a health condition, are pregnant or take medicines.",
+      ] },
+    ],
+  },
 };
 
 export type Messages = typeof en;
@@ -248,6 +280,7 @@ export const ms: Messages = {
     startCheck: "Mula semak",
     myChecks: "Semakan saya",
     language: "Bahasa",
+    howItWorks: "Cara Sukat berfungsi",
     footer:
       "Maklumat pendidikan umum sahaja — bukan nasihat perubatan. Sentiasa rujuk doktor, pakar diet atau ahli farmasi anda. Kami tidak menjual suplemen, dan kedudukan produk tidak pernah berdasarkan komisen.",
     metaDescription:
@@ -386,6 +419,7 @@ export const ms: Messages = {
     why: "Sebab",
     productsFit: "Produk yang sesuai untuk anda",
     commission: "Pautan kedai mungkin memberi kami komisen kecil tanpa kos kepada anda. Ia tidak pernah mengubah kedudukan.",
+    howWeChoose: "Cara kami memilih",
     research: "Kajian",
     perMonth: (amount: string) => `≈ ${amount}/bulan pada dos anda`,
     score: (n: number) => `Skor padanan ${n}/100`,
@@ -475,6 +509,36 @@ export const ms: Messages = {
     daily: (names: string) => `Ambil: ${names}`,
     alternate: (names: string) => `Ambil (selang sehari): ${names}`,
   },
+  how: {
+    title: "Cara Sukat berfungsi",
+    lede: "Apa yang berlaku kepada jawapan anda, cara produk disusun, dan cara Sukat dibiayai.",
+    sections: [
+      { id: "recommend", title: "Cara cadangan dibuat", body: [
+        "Jawapan anda melalui peraturan keselamatan terlebih dahulu. Penyakit buah pinggang atau hati, kehamilan, sesetengah ubat dan sesetengah keputusan ujian makmal boleh menghalang sesuatu suplemen. Jika ini berlaku, kami minta anda berjumpa doktor, dan keselamatan sentiasa mengatasi sebarang cadangan.",
+        "Kemudian kami semak suplemen yang sesuai dengan matlamat, diet dan keputusan anda, lalu mengira dos. Untuk protein, kami hanya mencadangkan jurang antara apa yang sudah anda makan dan keperluan matlamat anda.",
+        "Peraturan ini berdasarkan penyelidikan yang diterbitkan, seperti pendirian rasmi ISSN, dan disemak sebelum digunakan. Setiap perubahan direkodkan.",
+      ] },
+      { id: "ranking", title: "Cara produk disusun", body: [
+        "Kami hanya menunjukkan produk yang dijual di negara anda dan sesuai dengan alahan, diet dan keperluan halal anda.",
+        "Setiap produk dinilai berdasarkan ujian pihak ketiga yang bebas (35%), nilai bagi setiap gram bahan aktif (35%), kualiti formulasi (15%) dan kesesuaian untuk anda, seperti gula dan bajet (15%).",
+        "Jenama tidak boleh membayar untuk disenaraikan atau diletakkan lebih tinggi.",
+      ] },
+      { id: "money", title: "Cara Sukat memperoleh pendapatan", body: [
+        "Sukat adalah percuma. Sesetengah pautan \"Beli di…\" ialah pautan afiliat: jika anda membeli, kedai mungkin membayar kami komisen kecil tanpa kos tambahan kepada anda.",
+        "Kod komisen hanya ditambah selepas anda klik. Cadangan dan susunan produk dikira tanpanya, dan ujian kami memastikan perkara ini kekal begitu.",
+        "Kami tidak menjual suplemen dan tidak menerima bayaran daripada jenama.",
+      ] },
+      { id: "privacy", title: "Privasi anda", body: [
+        "Kami tidak menyimpan jawapan, keadaan kesihatan atau keputusan ujian makmal anda di pelayan kami. Semakan yang anda simpan kekal pada peranti ini.",
+        "Pautan yang dikongsi membawa jawapan anda dalam bahagian pautan selepas #, yang tidak pernah dihantar oleh pelayar kepada kami.",
+        "Jika anda memuat naik laporan makmal, ia dibaca sekali untuk mengisi borang dan tidak disimpan.",
+        "Kami hanya menyimpan kiraan tanpa nama: negara, matlamat, suplemen yang dicadangkan dan pautan kedai yang diklik.",
+      ] },
+      { id: "limits", title: "Apa yang Sukat bukan", body: [
+        "Sukat ialah maklumat pendidikan umum, bukan nasihat perubatan atau diagnosis. Berbincang dengan doktor, pakar diet atau ahli farmasi anda sebelum memulakan suplemen, terutamanya jika anda mempunyai masalah kesihatan, sedang hamil atau mengambil ubat.",
+      ] },
+    ],
+  },
 };
 
 export const id: Messages = {
@@ -483,6 +547,7 @@ export const id: Messages = {
     startCheck: "Mulai cek",
     myChecks: "Cek saya",
     language: "Bahasa",
+    howItWorks: "Cara kerja Sukat",
     footer:
       "Hanya edukasi umum — bukan saran medis. Selalu konsultasikan dengan dokter, ahli gizi, atau apoteker Anda. Kami tidak menjual suplemen, dan peringkat produk tidak pernah didasarkan pada komisi.",
     metaDescription:
@@ -621,6 +686,7 @@ export const id: Messages = {
     why: "Alasan",
     productsFit: "Produk yang cocok untuk Anda",
     commission: "Tautan toko mungkin memberi kami komisi kecil tanpa biaya untuk Anda. Ini tidak pernah mengubah peringkat.",
+    howWeChoose: "Cara kami memilih",
     research: "Penelitian",
     perMonth: (amount: string) => `≈ ${amount}/bulan sesuai dosis Anda`,
     score: (n: number) => `Skor kecocokan ${n}/100`,
@@ -709,6 +775,36 @@ export const id: Messages = {
   reminders: {
     daily: (names: string) => `Konsumsi: ${names}`,
     alternate: (names: string) => `Konsumsi (dua hari sekali): ${names}`,
+  },
+  how: {
+    title: "Cara kerja Sukat",
+    lede: "Apa yang terjadi pada jawaban Anda, bagaimana produk diurutkan, dan bagaimana Sukat dibiayai.",
+    sections: [
+      { id: "recommend", title: "Bagaimana rekomendasi dibuat", body: [
+        "Jawaban Anda diperiksa dengan aturan keamanan terlebih dahulu. Penyakit ginjal atau hati, kehamilan, beberapa obat dan beberapa hasil lab dapat menahan suatu suplemen. Jika itu terjadi, kami meminta Anda menemui dokter, dan keamanan selalu didahulukan di atas rekomendasi apa pun.",
+        "Lalu kami memeriksa suplemen mana yang cocok dengan tujuan, pola makan dan hasil lab Anda, lalu menghitung dosisnya. Untuk protein, kami hanya menyarankan selisih antara asupan Anda saat ini dan kebutuhan tujuan Anda.",
+        "Aturan ini didasarkan pada penelitian yang telah diterbitkan, seperti pernyataan sikap ISSN, dan ditinjau sebelum diberlakukan. Setiap perubahan dicatat.",
+      ] },
+      { id: "ranking", title: "Bagaimana produk diurutkan", body: [
+        "Kami hanya menampilkan produk yang dijual di negara Anda dan sesuai dengan alergi, pola makan dan kebutuhan halal Anda.",
+        "Setiap produk dinilai berdasarkan pengujian pihak ketiga yang independen (35%), nilai per gram bahan aktif (35%), kualitas formulasi (15%) dan kecocokan untuk Anda, seperti gula dan anggaran (15%).",
+        "Merek tidak dapat membayar agar dicantumkan atau diurutkan lebih tinggi.",
+      ] },
+      { id: "money", title: "Bagaimana Sukat mendapat pemasukan", body: [
+        "Sukat gratis. Beberapa tautan \"Beli di…\" adalah tautan afiliasi: jika Anda membeli, toko mungkin membayar kami komisi kecil tanpa biaya tambahan untuk Anda.",
+        "Kode komisi baru ditambahkan setelah Anda mengklik. Rekomendasi dan urutan produk dihitung tanpanya, dan pengujian kami memastikan hal ini tetap berlaku.",
+        "Kami tidak menjual suplemen dan tidak menerima bayaran dari merek.",
+      ] },
+      { id: "privacy", title: "Privasi Anda", body: [
+        "Kami tidak menyimpan jawaban, kondisi kesehatan, atau hasil lab Anda di server kami. Pemeriksaan yang Anda simpan tetap ada di perangkat ini.",
+        "Tautan yang dibagikan membawa jawaban Anda di bagian tautan setelah #, yang tidak pernah dikirim browser kepada kami.",
+        "Jika Anda mengunggah hasil lab, berkas itu dibaca sekali untuk mengisi formulir dan tidak disimpan.",
+        "Kami hanya menyimpan hitungan anonim: negara, tujuan, suplemen yang disarankan, dan tautan toko yang diklik.",
+      ] },
+      { id: "limits", title: "Apa yang bukan Sukat", body: [
+        "Sukat adalah edukasi umum, bukan nasihat medis atau diagnosis. Bicarakan dengan dokter, ahli gizi atau apoteker Anda sebelum mulai mengonsumsi suplemen, terutama jika Anda memiliki kondisi kesehatan, sedang hamil atau minum obat.",
+      ] },
+    ],
   },
 };
 

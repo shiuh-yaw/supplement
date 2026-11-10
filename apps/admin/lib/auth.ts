@@ -8,12 +8,13 @@ export type Permission =
   | "catalog:write"
   | "rules:draft"
   | "rules:publish"
-  | "users:manage";
+  | "users:manage"
+  | "affiliate:manage";
 
 const PERMISSIONS: Record<Role, Permission[]> = {
   EDITOR: ["catalog:write", "rules:draft"],
   REVIEWER: ["catalog:write", "rules:draft", "rules:publish"],
-  ADMIN: ["catalog:write", "rules:draft", "rules:publish", "users:manage"],
+  ADMIN: ["catalog:write", "rules:draft", "rules:publish", "users:manage", "affiliate:manage"],
 };
 
 export const can = (role: Role, permission: Permission) => PERMISSIONS[role].includes(permission);

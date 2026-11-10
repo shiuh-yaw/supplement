@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Dashboard() {
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000);
-  const [products, published, pending, drafts, events, byGoal, byCountry, { problems }] = await Promise.all([
+  const [products, published, pending, drafts, events, byGoal, byCountry, { problems }, shopClicks] = await Promise.all([
     prisma.product.count({ where: { active: true } }),
     prisma.rule.count({ where: { status: "PUBLISHED" } }),
     prisma.rule.findMany({ where: { status: "PENDING_REVIEW" }, orderBy: { updatedAt: "desc" }, take: 10 }),
@@ -14,11 +14,13 @@ export default async function Dashboard() {
     prisma.recommendationEvent.groupBy({ by: ["goal"], where: { createdAt: { gte: since } }, _count: true }),
     prisma.recommendationEvent.groupBy({ by: ["country"], where: { createdAt: { gte: since } }, _count: true }),
     loadKnowledgeBase(),
+    prisma.outboundClick.count({ where: { createdAt: { gte: since } } }),
   ]);
   const sampleProducts = await prisma.product.count({ where: { notes: { startsWith: "SAMPLE DATA" } } });
 
   const stats = [
     { label: "Checks (30 days)", value: events },
+    { label: "Shop clicks (30 days)", value: shopClicks },
     { label: "Active products", value: products },
     { label: "Published rules", value: published },
     { label: "Draft rules", value: drafts },
@@ -39,7 +41,7 @@ export default async function Dashboard() {
         </ul>
       )}
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         {stats.map((s) => (
           <div key={s.label} className="card">
             <p className="text-xs text-slate-500">{s.label}</p>
