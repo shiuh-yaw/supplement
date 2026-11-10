@@ -7,3 +7,5 @@ export * from "./defaults";
 export * from "./labels";
 export * from "./units";
 export { NEW_RECOMMEND_RULE_IDS } from "./defaults-micronutrients";
+export * from "./i18n";
+export * from "./defaults-i18n";

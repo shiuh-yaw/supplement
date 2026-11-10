@@ -40,7 +40,12 @@ export async function saveRule(_prev: ActionState, formData: FormData): Promise<
     }
     if (errors.length) return { error: errors };
 
-    const data = { name, message, effect, priority, supplementId, condition: condition as object };
+    const translations: Record<string, string> = {};
+    for (const loc of ["ms", "id"]) {
+      const v = String(formData.get(`message_${loc}`) ?? "").trim();
+      if (v) translations[loc] = v;
+    }
+    const data = { name, message, translations, effect, priority, supplementId, condition: condition as object };
 
     if (id) {
       const before = await prisma.rule.findUniqueOrThrow({ where: { id } });

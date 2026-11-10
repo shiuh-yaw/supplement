@@ -2,14 +2,9 @@
 
 import { useState } from "react";
 import {
-  ALLERGEN_LABELS,
-  CONDITION_LABELS,
-  COUNTRY_LABELS,
-  CURRENT_SUPPLEMENT_LABELS,
-  DIET_LABELS,
-  GOAL_LABELS,
-  MEDICATION_LABELS,
   fromSi,
+  groupDigits,
+  unitLabel,
   type Dose,
   type Notice,
   type RankedProduct,
@@ -21,9 +16,10 @@ import { APP_NAME } from "@/lib/site";
 import { marketplaceLabel, shareUrl } from "@/lib/share";
 import { saveCheck } from "@/lib/history";
 import { buildReminderIcs } from "@/lib/reminders";
+import { useI18n } from "@/lib/i18n/context";
 
-const money = (amount: number, currency: string) =>
-  new Intl.NumberFormat("en", {
+const money = (amount: number, currency: string, tag: string) =>
+  new Intl.NumberFormat(tag, {
     style: "currency",
     currency,
     maximumFractionDigits: currency === "IDR" || currency === "VND" ? 0 : 2,
@@ -31,11 +27,11 @@ const money = (amount: number, currency: string) =>
 
 const servingsText = (n: number) => (n === 0.5 ? "½" : Number.isInteger(n) ? String(n) : `${Math.floor(n)}½`);
 
-const STATUS: Record<SupplementRecommendation["status"], { label: string; cls: string }> = {
-  recommended: { label: "Recommended", cls: "bg-brand-100 text-brand-700" },
-  not_needed: { label: "Not needed", cls: "bg-slate-100 text-slate-700" },
-  not_recommended: { label: "Not for you right now", cls: "bg-slate-100 text-slate-600" },
-  blocked: { label: "See a doctor first", cls: "bg-red-100 text-red-700" },
+const STATUS_CLS: Record<SupplementRecommendation["status"], string> = {
+  recommended: "bg-brand-100 text-brand-700",
+  not_needed: "bg-slate-100 text-slate-700",
+  not_recommended: "bg-slate-100 text-slate-600",
+  blocked: "bg-red-100 text-red-700",
 };
 
 function NoticeList({ items, tone }: { items: Notice[]; tone: "red" | "amber" }) {
@@ -50,13 +46,9 @@ function NoticeList({ items, tone }: { items: Notice[]; tone: "red" | "amber" })
   );
 }
 
-const SCHEDULE_PHRASE: Record<Dose["schedule"], string> = {
-  daily: "a day",
-  every_other_day: "every other day",
-  per_exercise_hour: "per hour of exercise",
-};
-
 function ProductRow({ ranked, rank, dose, ingredient }: { ranked: RankedProduct; rank: number; dose: Dose; ingredient: string }) {
+  const { m: msg, locale, tag } = useI18n();
+  const m = msg.results;
   const { product, price, servingsPerDose } = ranked;
   const servings =
     servingsPerDose.min === servingsPerDose.max
@@ -65,7 +57,7 @@ function ProductRow({ ranked, rank, dose, ingredient }: { ranked: RankedProduct;
   const one = servingsPerDose.max <= 1;
   // "27 g protein", "1000 IU vitamin D3", "65 mg iron"
   const bareUnit = /^(g|mg|µg|IU)$/.test(dose.unit);
-  const active = `${product.activePerServingG.toLocaleString("en")} ${dose.unit}${bareUnit ? ` ${ingredient}` : ""}`;
+  const active = `${groupDigits(String(product.activePerServingG), locale)} ${unitLabel(dose.unit, locale)}${bareUnit ? ` ${ingredient}` : ""}`;
   return (
     <li className="rounded-xl border border-slate-200 p-4 break-inside-avoid">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -74,13 +66,13 @@ function ProductRow({ ranked, rank, dose, ingredient }: { ranked: RankedProduct;
           <p className="font-semibold">{product.name}</p>
         </div>
         <div className="text-right">
-          <p className="text-sm font-semibold">{money(price.price, price.currency)}</p>
-          <p className="text-xs text-slate-500">≈ {money(ranked.costPerMonth, price.currency)}/month at your dose</p>
+          <p className="text-sm font-semibold">{money(price.price, price.currency, tag)}</p>
+          <p className="text-xs text-slate-500">{m.perMonth(money(ranked.costPerMonth, price.currency, tag))}</p>
         </div>
       </div>
       <p className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-700">
-        Take <strong>{servings} {one ? "serving" : "servings"} {SCHEDULE_PHRASE[dose.schedule]}</strong>
-        <span className="text-slate-600"> · 1 serving has {active}</span>
+        {m.take} <strong>{servings} {one ? m.serving : m.servings} {m.schedule[dose.schedule]}</strong>
+        <span className="text-slate-600">{m.oneServingHas(active)}</span>
       </p>
       <ul className="mt-2 flex flex-wrap gap-1.5">
         {ranked.reasons.map((r) => (
@@ -88,10 +80,10 @@ function ProductRow({ ranked, rank, dose, ingredient }: { ranked: RankedProduct;
         ))}
       </ul>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-        <span>Match score {ranked.score}/100</span>
+        <span>{m.score(ranked.score)}</span>
         {price.url && (
           <a href={price.url} target="_blank" rel="noopener noreferrer sponsored" className="btn-ghost px-3 py-1.5 text-xs print:hidden">
-            {marketplaceLabel(price.url)} ↗
+            {marketplaceLabel(price.url, m)} ↗
           </a>
         )}
       </div>
@@ -100,20 +92,20 @@ function ProductRow({ ranked, rank, dose, ingredient }: { ranked: RankedProduct;
 }
 
 function SupplementCard({ item }: { item: SupplementRecommendation }) {
-  const status = STATUS[item.status];
+  const m = useI18n().m.results;
   const top = item.products.slice(0, 3);
   return (
     <article className="card space-y-4 break-inside-avoid print:shadow-none">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-lg font-semibold">
           {item.supplement.name}
-          {item.alreadyTaking && <span className="ml-2 align-middle text-xs font-medium text-slate-500">· you take this now</span>}
+          {item.alreadyTaking && <span className="ml-2 align-middle text-xs font-medium text-slate-500">{m.takingNow}</span>}
         </h3>
         <div className="flex items-center gap-2">
-          <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-600" title="Strength of scientific evidence">
-            Evidence {item.supplement.evidenceGrade}
+          <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-600" title={m.evidenceTitle}>
+            {m.evidence(item.supplement.evidenceGrade)}
           </span>
-          <span className={`rounded-lg px-2 py-1 text-xs font-semibold ${status.cls}`}>{status.label}</span>
+          <span className={`rounded-lg px-2 py-1 text-xs font-semibold ${STATUS_CLS[item.status]}`}>{m.status[item.status]}</span>
         </div>
       </header>
 
@@ -121,7 +113,7 @@ function SupplementCard({ item }: { item: SupplementRecommendation }) {
 
       {item.dose && (
         <div className="rounded-xl bg-brand-50 p-4">
-          <p className="text-sm text-brand-700">Suggested amount</p>
+          <p className="text-sm text-brand-700">{m.suggested}</p>
           <p className="text-2xl font-bold text-brand-700">{item.dose.text}</p>
           <p className="mt-1 text-sm text-slate-600">{item.supplement.timing}</p>
         </div>
@@ -131,7 +123,7 @@ function SupplementCard({ item }: { item: SupplementRecommendation }) {
 
       {item.reasons.length > 0 && (
         <div>
-          <p className="text-sm font-medium">Why</p>
+          <p className="text-sm font-medium">{m.why}</p>
           <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-slate-600">
             {item.reasons.map((r) => <li key={r}>{r}</li>)}
           </ul>
@@ -146,7 +138,7 @@ function SupplementCard({ item }: { item: SupplementRecommendation }) {
 
       {item.status === "recommended" && (
         <div>
-          <p className="mb-2 text-sm font-medium">Products that fit you</p>
+          <p className="mb-2 text-sm font-medium">{m.productsFit}</p>
           {top.length > 0 ? (
             <>
               <ol className="space-y-2">
@@ -156,7 +148,7 @@ function SupplementCard({ item }: { item: SupplementRecommendation }) {
               </ol>
               {top.some((p) => p.price.url) && (
                 <p className="mt-2 text-xs text-slate-500 print:hidden">
-                  Shop links may earn us a small commission at no cost to you. It never changes the ranking.
+                  {m.commission}
                 </p>
               )}
             </>
@@ -168,7 +160,7 @@ function SupplementCard({ item }: { item: SupplementRecommendation }) {
 
       {item.supplement.references.length > 0 && (
         <details className="text-xs text-slate-500">
-          <summary className="cursor-pointer">Research</summary>
+          <summary className="cursor-pointer">{m.research}</summary>
           <ul className="mt-1 space-y-1">
             {item.supplement.references.map((r) => (
               <li key={r.url}>
@@ -184,8 +176,10 @@ function SupplementCard({ item }: { item: SupplementRecommendation }) {
 
 /** Printed at the top of "Save PDF for my doctor": what the person told us. */
 function AnswersSummary({ profile }: { profile: RecommendationResult["profile"] }) {
+  const { m: msg, labels } = useI18n();
+  const a = msg.results.answers;
   const p = profile;
-  const list = (items: string[]) => (items.length ? items.join(", ") : "None reported");
+  const list = (items: string[]) => (items.length ? items.join(", ") : a.none);
   const labs: string[] = [];
   if (p.labs.egfr !== undefined) labs.push(`eGFR ${p.labs.egfr} mL/min/1.73m²`);
   if (p.labs.creatinineUmolL !== undefined)
@@ -201,21 +195,21 @@ function AnswersSummary({ profile }: { profile: RecommendationResult["profile"] 
     labs.push(`B12 ${p.labs.b12PmolL} pmol/L (${fromSi("b12PmolL", p.labs.b12PmolL, "conv")} pg/mL)`);
 
   const rows: [string, string][] = [
-    ["Age / sex", `${p.age}, ${p.sex}`],
-    ["Weight", `${p.weightKg} kg`],
-    ["Country", COUNTRY_LABELS[p.country]],
-    ["Goal", `${GOAL_LABELS[p.goal]}, ${p.trainingDaysPerWeek} workouts/week`],
-    ["Diet", `${DIET_LABELS[p.diet]}${p.dietaryProteinG !== undefined ? `, ~${Math.round(p.dietaryProteinG)} g protein/day from food` : ""}`],
-    ["Fish / seafood", p.fishServingsPerWeek === undefined ? "Not answered" : `${p.fishServingsPerWeek}${p.fishServingsPerWeek >= 2 ? "+" : ""} times/week`],
-    ["Allergies", list(p.allergies.map((a) => ALLERGEN_LABELS[a]))],
-    ["Conditions", list(p.conditions.map((c) => CONDITION_LABELS[c]))],
-    ["Medications", list(p.medications.map((m) => MEDICATION_LABELS[m]))],
-    ["Supplements taken now", list(p.currentSupplements.map((s) => CURRENT_SUPPLEMENT_LABELS[s]))],
-    ["Lab values", labs.length ? labs.join("; ") : "None entered"],
+    [a.ageSex, `${p.age}, ${p.sex === "male" ? msg.q.male : msg.q.female}`],
+    [a.weight, `${p.weightKg} kg`],
+    [a.country, labels.countries[p.country]],
+    [a.goal, a.workouts(labels.goals[p.goal], p.trainingDaysPerWeek)],
+    [a.diet, `${labels.diets[p.diet]}${p.dietaryProteinG !== undefined ? a.fromFood(Math.round(p.dietaryProteinG)) : ""}`],
+    [a.fish, p.fishServingsPerWeek === undefined ? a.notAnswered : a.fishTimes(p.fishServingsPerWeek)],
+    [a.allergies, list(p.allergies.map((x) => labels.allergens[x]))],
+    [a.conditions, list(p.conditions.map((c) => labels.conditions[c]))],
+    [a.medications, list(p.medications.map((x) => labels.medications[x]))],
+    [a.current, list(p.currentSupplements.map((x) => labels.currentSupplements[x]))],
+    [a.labs, labs.length ? labs.join("; ") : a.noLabs],
   ];
   return (
     <section className="hidden rounded-xl border border-slate-300 p-4 text-sm print:block">
-      <h2 className="mb-2 font-semibold">Answers this plan is based on</h2>
+      <h2 className="mb-2 font-semibold">{a.title}</h2>
       <dl className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1">
         {rows.map(([k, v]) => (
           <div key={k} className="contents">
@@ -229,9 +223,11 @@ function AnswersSummary({ profile }: { profile: RecommendationResult["profile"] 
 }
 
 function ShareBar({ result, profile }: { result: RecommendationResult; profile: UserProfileInput }) {
+  const { m: msg } = useI18n();
+  const m = msg.results;
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState<"idle" | "saved" | "failed">("idle");
-  const ics = buildReminderIcs(result);
+  const ics = buildReminderIcs(result, "08:00", new Date(), msg.reminders);
 
   function downloadReminders() {
     if (!ics) return;
@@ -245,9 +241,9 @@ function ShareBar({ result, profile }: { result: RecommendationResult; profile: 
   const url = shareUrl(window.location.origin, profile);
   const summary = result.items
     .filter((i) => i.status === "recommended" || i.status === "blocked")
-    .map((i) => `• ${i.supplement.name}: ${i.status === "recommended" && i.dose ? i.dose.text : "see a doctor first"}`)
+    .map((i) => `• ${i.supplement.name}: ${i.status === "recommended" && i.dose ? i.dose.text : m.shareSeeDoctor}`)
     .join("\n");
-  const text = `My ${APP_NAME} supplement plan:\n${summary || "• No supplements needed right now"}\n\nFull plan: ${url}`;
+  const text = m.shareText(APP_NAME, summary || m.shareNone, url);
 
   async function copy() {
     try {
@@ -255,13 +251,13 @@ function ShareBar({ result, profile }: { result: RecommendationResult; profile: 
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {
-      window.prompt("Copy this link:", url);
+      window.prompt(m.copyPrompt, url);
     }
   }
 
   async function nativeShare() {
     try {
-      await navigator.share({ title: `${APP_NAME} supplement plan`, text, url });
+      await navigator.share({ title: m.shareTitle(APP_NAME), text, url });
     } catch {
       /* cancelled */
     }
@@ -269,7 +265,7 @@ function ShareBar({ result, profile }: { result: RecommendationResult; profile: 
 
   return (
     <section className="card space-y-3 print:hidden">
-      <h2 className="font-semibold">Keep track</h2>
+      <h2 className="font-semibold">{m.keepTrack}</h2>
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -277,34 +273,33 @@ function ShareBar({ result, profile }: { result: RecommendationResult; profile: 
           disabled={saved === "saved"}
           onClick={() => setSaved(saveCheck(profile, result) ? "saved" : "failed")}
         >
-          {saved === "saved" ? "Saved on this device ✓" : "Save to my history"}
+          {saved === "saved" ? m.saved : m.saveHistory}
         </button>
         {ics && (
           <button type="button" className="btn-ghost" onClick={downloadReminders}>
-            Add daily reminders to my calendar
+            {m.reminders}
           </button>
         )}
       </div>
       {saved === "saved" && (
         <p className="text-xs text-slate-500">
-          Saved in this browser only. <a href="/history" className="font-medium text-brand-700 underline">See your history</a> to compare checks over time.
+          {m.savedNote} <a href="/history" className="font-medium text-brand-700 underline">{m.seeHistory}</a> {m.savedNoteEnd}
         </p>
       )}
-      {saved === "failed" && <p className="text-xs text-red-700">This browser doesn&apos;t allow saving (private mode?).</p>}
-      <h2 className="pt-2 font-semibold">Share</h2>
+      {saved === "failed" && <p className="text-xs text-red-700">{m.saveFailed}</p>}
+      <h2 className="pt-2 font-semibold">{m.share}</h2>
       <div className="flex flex-wrap gap-2">
         <a className="btn bg-[#25D366] text-white hover:bg-[#1ebe5b]" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer">
-          Share on WhatsApp
+          {m.whatsapp}
         </a>
         {typeof navigator !== "undefined" && "share" in navigator && (
-          <button type="button" className="btn-ghost" onClick={nativeShare}>More apps…</button>
+          <button type="button" className="btn-ghost" onClick={nativeShare}>{m.moreApps}</button>
         )}
-        <button type="button" className="btn-ghost" onClick={copy}>{copied ? "Link copied ✓" : "Copy link"}</button>
-        <button type="button" className="btn-ghost" onClick={() => window.print()}>Save PDF for my doctor</button>
+        <button type="button" className="btn-ghost" onClick={copy}>{copied ? m.copied : m.copy}</button>
+        <button type="button" className="btn-ghost" onClick={() => window.print()}>{m.savePdf}</button>
       </div>
       <p className="text-xs text-slate-500">
-        The link contains the answers you gave, including any health details, so only share it with people you trust.
-        We don&apos;t store it. To save a PDF, choose “Save as PDF” in the print window.
+        {m.linkNote}
       </p>
     </section>
   );
@@ -324,6 +319,8 @@ export function Results({
   /** Go back to the questions with the answers kept (not available for shared links). */
   onEdit?: () => void;
 }) {
+  const { m: msg, labels, tag } = useI18n();
+  const m = msg.results;
   const order = { recommended: 0, blocked: 1, not_needed: 2, not_recommended: 3 } as const;
   const items = [...result.items].sort((a, b) => order[a.status] - order[b.status]);
   // Full cards for anything to act on; a compact list for the rest.
@@ -331,29 +328,29 @@ export function Results({
     i.status === "recommended" || i.status === "blocked" || i.alreadyTaking || i.cautions.length > 0;
   const cards = items.filter(needsCard);
   const quiet = items.filter((i) => !needsCard(i));
-  const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const today = new Date().toLocaleDateString(tag, { day: "numeric", month: "long", year: "numeric" });
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       {shared && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50 p-4 text-sm text-brand-700 print:hidden">
-          <span>Someone shared these results with you. They&apos;re based on <strong>their</strong> answers, not yours.</span>
-          <button type="button" className="btn-primary" onClick={onRestart}>Do my own check</button>
+          <span>{m.sharedBanner}</span>
+          <button type="button" className="btn-primary" onClick={onRestart}>{m.doOwn}</button>
         </div>
       )}
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">{shared ? "Shared supplement plan" : "Your supplement plan"}</h1>
+          <h1 className="text-2xl font-bold">{shared ? m.sharedTitle : m.title}</h1>
           <p className="text-sm text-slate-600">
-            Goal: {GOAL_LABELS[result.profile.goal]} · {result.profile.weightKg} kg · {result.profile.trainingDaysPerWeek} workouts/week
+            {m.goalLine(labels.goals[result.profile.goal], result.profile.weightKg, result.profile.trainingDaysPerWeek)}
           </p>
-          <p className="hidden text-xs text-slate-500 print:block">Prepared with {APP_NAME} on {today}</p>
+          <p className="hidden text-xs text-slate-500 print:block">{m.preparedOn(APP_NAME, today)}</p>
         </div>
         {!shared && (
           <div className="flex gap-2 print:hidden">
-            {onEdit && <button type="button" className="btn-ghost" onClick={onEdit}>Edit my answers</button>}
-            <button type="button" className="btn-ghost" onClick={onRestart}>Start over</button>
+            {onEdit && <button type="button" className="btn-ghost" onClick={onEdit}>{m.editAnswers}</button>}
+            <button type="button" className="btn-ghost" onClick={onRestart}>{m.startOver}</button>
           </div>
         )}
       </div>
@@ -365,14 +362,14 @@ export function Results({
 
       {cards.length === 0 && (
         <div className="card text-sm text-slate-600">
-          Good news: based on your answers, you don&apos;t need any of the supplements we cover right now.
+          {m.allClear}
         </div>
       )}
       {cards.map((item) => <SupplementCard key={item.supplement.slug} item={item} />)}
 
       {quiet.length > 0 && (
         <section className="card break-inside-avoid">
-          <h2 className="font-semibold">Not needed for you right now</h2>
+          <h2 className="font-semibold">{m.notNeededTitle}</h2>
           <ul className="mt-2 divide-y divide-slate-100 text-sm">
             {quiet.map((i) => (
               <li key={i.supplement.slug} className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-2">

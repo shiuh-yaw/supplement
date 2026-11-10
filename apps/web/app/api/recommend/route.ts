@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { recommend, userProfileSchema } from "@supplement/engine";
+import { isLocale, recommend, userProfileSchema } from "@supplement/engine";
 import { loadKnowledgeBase, prisma } from "@supplement/db";
 
 export const dynamic = "force-dynamic";
@@ -20,10 +20,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const { kb, problems } = await loadKnowledgeBase();
+  const lang = new URL(request.url).searchParams.get("lang");
+  const locale = isLocale(lang) ? lang : "en";
+  const { kb, problems } = await loadKnowledgeBase({ locale });
   if (problems.length) console.warn("[knowledge-base]", problems);
 
-  const result = recommend(parsed.data, kb);
+  const result = recommend(parsed.data, kb, { locale });
 
   // Anonymous usage stats only — never the profile, health data or labs.
   prisma.recommendationEvent

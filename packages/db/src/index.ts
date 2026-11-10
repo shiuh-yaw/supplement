@@ -4,6 +4,7 @@ import {
   validateCondition,
   type Allergen,
   type Country,
+  type Locale,
   type KnowledgeBase,
   type Reference,
   type Rule,
@@ -23,7 +24,19 @@ export const toDbEffect = (e: RuleEffect): DbRuleEffect => e.toUpperCase() as Db
 export interface LoadOptions {
   /** Include DRAFT and PENDING_REVIEW rules — for the backoffice simulator only. */
   includeUnpublishedRules?: boolean;
+  /** Language for supplement and rule text; anything untranslated falls back to English. */
+  locale?: Locale;
 }
+
+type SupplementText = { name?: string; summary?: string; timing?: string; notes?: string[] };
+
+/** Picks the translation for `locale` from a translations JSON value, if there is one. */
+function pick<T>(translations: unknown, locale: Locale | undefined): Partial<T> {
+  if (!locale || locale === "en" || !translations || typeof translations !== "object") return {};
+  const t = (translations as Record<string, unknown>)[locale];
+  return t && typeof t === "object" ? (t as Partial<T>) : typeof t === "string" ? ({ message: t } as unknown as Partial<T>) : {};
+}
+const nonEmpty = (s: unknown): s is string => typeof s === "string" && s.trim() !== "";
 
 export interface LoadedKnowledgeBase {
   kb: KnowledgeBase;
@@ -51,14 +64,16 @@ export async function loadKnowledgeBase(options: LoadOptions = {}): Promise<Load
       problems.push(`Supplement "${s.slug}" has invalid dosing and was skipped.`);
       continue;
     }
+    const t = pick<SupplementText>(s.translations, options.locale);
+    const tNotes = Array.isArray(t.notes) ? t.notes.filter(nonEmpty) : [];
     supplements.push({
       slug: s.slug,
-      name: s.name,
-      summary: s.summary,
+      name: nonEmpty(t.name) ? t.name : s.name,
+      summary: nonEmpty(t.summary) ? t.summary : s.summary,
       evidenceGrade: s.evidenceGrade,
       dosing: dosing.data,
-      timing: s.timing,
-      notes: s.notes,
+      timing: nonEmpty(t.timing) ? t.timing : s.timing,
+      notes: tNotes.length ? tNotes : s.notes,
       references: (Array.isArray(s.references) ? s.references : []) as unknown as Reference[],
     });
   }
@@ -77,7 +92,10 @@ export async function loadKnowledgeBase(options: LoadOptions = {}): Promise<Load
       supplementSlug: r.supplement?.slug ?? null,
       effect: toEngineEffect(r.effect),
       condition: condition.condition,
-      message: r.message,
+      message: (() => {
+        const t = pick<{ message: string }>(r.translations, options.locale);
+        return nonEmpty(t.message) ? t.message : r.message;
+      })(),
       priority: r.priority,
     });
   }

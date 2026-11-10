@@ -59,6 +59,8 @@ model Supplement {
   references    Json          @default("[]")
   active        Boolean       @default(true)
   sortOrder     Int           @default(0)
+  /// { ms: { name, summary, timing, notes[] }, id: { ... } } — falls back to English
+  translations  Json          @default("{}")
   products      Product[]
   rules         Rule[]
   updatedAt     DateTime      @updatedAt
@@ -119,6 +121,8 @@ model Rule {
   /// ConditionNode JSON from @supplement/engine
   condition    Json
   message      String
+  /// { ms: "…", id: "…" } — falls back to English
+  translations Json        @default("{}")
   priority     Int         @default(0)
   status       RuleStatus  @default(DRAFT)
   createdBy    AdminUser?  @relation("RuleCreatedBy", fields: [createdById], references: [id])

@@ -1,43 +1,48 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
-import { APP_NAME, TAGLINE } from "@/lib/site";
+import { APP_NAME } from "@/lib/site";
+import { I18nProvider } from "@/lib/i18n/context";
+import { MESSAGES } from "@/lib/i18n/messages";
+import { getLocale } from "@/lib/i18n/server";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export const viewport: Viewport = { themeColor: "#0f8a68" };
 
-export const metadata: Metadata = {
-  title: `${APP_NAME} — ${TAGLINE}`,
-  description:
-    "Find out which protein, creatine and supplements suit your goals and health — brand-neutral, safety-first, for Southeast Asia.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const m = MESSAGES[await getLocale()];
+  return { title: `${APP_NAME} — ${m.site.tagline}`, description: m.site.metaDescription };
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale();
+  const m = MESSAGES[locale];
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body className="min-h-screen font-sans antialiased">
-        <header className="border-b border-slate-200 bg-white print:hidden">
-          <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-            <Link href="/" className="flex items-baseline gap-2">
-              <span className="text-lg font-bold text-brand-700">{APP_NAME}</span>
-              <span className="hidden text-xs text-slate-500 sm:inline">{TAGLINE}</span>
-            </Link>
-            <nav className="flex items-center gap-2">
-              <Link href="/history" className="btn-ghost px-3">
-                My checks
+        <I18nProvider initialLocale={locale}>
+          <header className="border-b border-slate-200 bg-white print:hidden">
+            <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4">
+              <Link href="/" className="flex items-baseline gap-2">
+                <span className="text-lg font-bold text-brand-700">{APP_NAME}</span>
+                <span className="hidden text-xs text-slate-500 sm:inline">{m.site.tagline}</span>
               </Link>
-              <Link href="/check" className="btn-primary">
-                Start check
-              </Link>
-            </nav>
-          </div>
-        </header>
-        <main className="mx-auto max-w-5xl px-4 py-8 sm:py-12 print:p-0">{children}</main>
-        <footer className="border-t border-slate-200 py-8 text-center text-xs text-slate-500 print:hidden">
-          <p className="mx-auto max-w-2xl px-4">
-            General education only — not medical advice. Always check with your doctor, dietitian or pharmacist.
-            We don&apos;t sell supplements, and product rankings are never based on commission.
-          </p>
-        </footer>
+              <nav className="flex flex-wrap items-center justify-end gap-2">
+                <LanguageSwitcher />
+                <Link href="/history" className="btn-ghost px-3">
+                  {m.site.myChecks}
+                </Link>
+                <Link href="/check" className="btn-primary">
+                  {m.site.startCheck}
+                </Link>
+              </nav>
+            </div>
+          </header>
+          <main className="mx-auto max-w-5xl px-4 py-8 sm:py-12 print:p-0">{children}</main>
+          <footer className="border-t border-slate-200 py-8 text-center text-xs text-slate-500 print:hidden">
+            <p className="mx-auto max-w-2xl px-4">{m.site.footer}</p>
+          </footer>
+        </I18nProvider>
       </body>
     </html>
   );

@@ -1,5 +1,12 @@
 import bcrypt from "bcryptjs";
-import { DEFAULT_RULES, DEFAULT_SUPPLEMENTS, NEW_RECOMMEND_RULE_IDS, SAMPLE_PRODUCTS } from "@supplement/engine";
+import {
+  DEFAULT_RULES,
+  DEFAULT_SUPPLEMENTS,
+  NEW_RECOMMEND_RULE_IDS,
+  RULE_TRANSLATIONS,
+  SAMPLE_PRODUCTS,
+  SUPPLEMENT_TRANSLATIONS,
+} from "@supplement/engine";
 import { prisma, toDbEffect, writeAudit } from "../src/index";
 import { CATALOG_CHECKED_ON, REAL_CATALOG } from "./catalog";
 
@@ -116,6 +123,25 @@ async function main() {
       });
     }
   }
+
+  // --- translations (only fills rows that have none, so backoffice edits stay) ---
+  const isEmpty = (v: unknown) => !v || (typeof v === "object" && Object.keys(v as object).length === 0);
+  let translated = 0;
+  for (const [slug, t] of Object.entries(SUPPLEMENT_TRANSLATIONS)) {
+    const row = await prisma.supplement.findUnique({ where: { slug } });
+    if (row && isEmpty(row.translations)) {
+      await prisma.supplement.update({ where: { id: row.id }, data: { translations: t as object } });
+      translated++;
+    }
+  }
+  for (const [key, t] of Object.entries(RULE_TRANSLATIONS)) {
+    const row = await prisma.rule.findUnique({ where: { key } });
+    if (row && isEmpty(row.translations)) {
+      await prisma.rule.update({ where: { id: row.id }, data: { translations: t } });
+      translated++;
+    }
+  }
+  if (translated) console.log(`  + translations added to ${translated} supplements and rules`);
 
   // --- real catalog ------------------------------------------------------------
   let productsAdded = 0;

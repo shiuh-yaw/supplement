@@ -49,7 +49,15 @@ export const isEnabled = () => Boolean(process.env.ANTHROPIC_API_KEY);
 let client: Anthropic | null = null;
 const getClient = () => (client ??= new Anthropic({ timeout: 90_000, maxRetries: 1 }));
 
-export class ExtractionError extends Error {}
+export type ExtractionErrorCode = "unreadable" | "notReport";
+export class ExtractionError extends Error {
+  constructor(
+    public code: ExtractionErrorCode,
+    message: string,
+  ) {
+    super(message);
+  }
+}
 
 async function callClaude(data: string, mediaType: AcceptedType): Promise<Extraction> {
   const source =
@@ -72,9 +80,9 @@ async function callClaude(data: string, mediaType: AcceptedType): Promise<Extrac
     ],
   });
 
-  if (response.stop_reason === "refusal") throw new ExtractionError("We couldn't read this file.");
+  if (response.stop_reason === "refusal") throw new ExtractionError("unreadable", "We couldn't read this file.");
   if (response.stop_reason === "max_tokens" || !response.parsed_output) {
-    throw new ExtractionError("We couldn't read the results from this file. Please enter them by hand.");
+    throw new ExtractionError("unreadable", "We couldn't read the results from this file. Please enter them by hand.");
   }
   return response.parsed_output;
 }
@@ -91,7 +99,7 @@ export interface ExtractResult {
 export async function extractLabs(bytes: Buffer, mediaType: AcceptedType): Promise<ExtractResult> {
   const extraction = await callClaude(bytes.toString("base64"), mediaType);
   if (!extraction.isLabReport) {
-    throw new ExtractionError("This doesn't look like a lab report. Try a clearer photo or the PDF from your lab.");
+    throw new ExtractionError("notReport", "This doesn't look like a lab report. Try a clearer photo or the PDF from your lab.");
   }
 
   const result: ExtractResult = { values: {}, units: {}, found: [], skipped: [], reportDate: extraction.reportDate };
