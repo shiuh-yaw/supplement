@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useFormAction } from "@/components/useFormAction";
 import { ALLERGEN_LABELS, COUNTRY_LABELS, CURRENCY_BY_COUNTRY, type Allergen, type Country } from "@supplement/engine";
 import { saveProduct } from "@/app/(dash)/products/actions";
@@ -33,10 +34,12 @@ export function ProductForm({
   forms,
 }: {
   product?: ProductFormValues;
-  supplements: { id: string; name: string }[];
+  supplements: { id: string; name: string; unit: string }[];
   forms: readonly string[];
 }) {
   const [state, action, pending] = useFormAction(saveProduct, {});
+  const [supplementId, setSupplementId] = useState(product?.supplementId ?? supplements[0]?.id ?? "");
+  const unit = supplements.find((s) => s.id === supplementId)?.unit ?? "g";
   const priceFor = (c: string) => product?.prices.find((p) => p.country === c);
 
   return (
@@ -46,7 +49,7 @@ export function ProductForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="label" htmlFor="supplementId">Supplement</label>
-          <select id="supplementId" name="supplementId" className="input" defaultValue={product?.supplementId}>
+          <select id="supplementId" name="supplementId" className="input" value={supplementId} onChange={(e) => setSupplementId(e.target.value)}>
             {supplements.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         </div>
@@ -69,7 +72,7 @@ export function ProductForm({
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {([
           ["servingSizeG", "Serving size (g)"],
-          ["activePerServingG", "Protein / creatine per serving (g)"],
+          ["activePerServingG", `Active amount per serving (${unit})`],
           ["sugarPerServingG", "Sugar per serving (g)"],
           ["servingsPerContainer", "Servings per container"],
         ] as const).map(([key, label]) => (

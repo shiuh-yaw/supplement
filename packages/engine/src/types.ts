@@ -7,7 +7,7 @@ import { z } from "zod";
 export const GOALS = ["muscle_gain", "strength", "fat_loss", "endurance", "general_health"] as const;
 export const DIETS = ["omnivore", "vegetarian", "vegan"] as const;
 export const COUNTRIES = ["MY", "SG", "ID", "TH", "PH", "VN"] as const;
-export const ALLERGENS = ["dairy", "soy", "gluten", "egg", "peanut", "tree_nut"] as const;
+export const ALLERGENS = ["dairy", "soy", "gluten", "egg", "peanut", "tree_nut", "fish", "shellfish"] as const;
 export const CONDITIONS = [
   "kidney_disease",
   "liver_disease",
@@ -17,6 +17,24 @@ export const CONDITIONS = [
   "gout",
   "pregnant",
   "breastfeeding",
+  /** Thalassaemia (incl. trait) or haemochromatosis — iron can build up. */
+  "iron_overload_risk",
+] as const;
+
+/** Supplements people may already take. Slugs match supplements where one exists. */
+export const CURRENT_SUPPLEMENTS = [
+  "protein",
+  "creatine",
+  "vitamin_d",
+  "omega_3",
+  "iron",
+  "vitamin_b12",
+  "electrolytes",
+  "multivitamin",
+  "calcium",
+  "magnesium",
+  "zinc",
+  "herbal",
 ] as const;
 export const MEDICATIONS = [
   "diuretic",
@@ -34,6 +52,7 @@ export type Country = (typeof COUNTRIES)[number];
 export type Allergen = (typeof ALLERGENS)[number];
 export type HealthCondition = (typeof CONDITIONS)[number];
 export type MedicationClass = (typeof MEDICATIONS)[number];
+export type CurrentSupplement = (typeof CURRENT_SUPPLEMENTS)[number];
 
 export const CURRENCY_BY_COUNTRY: Record<Country, string> = {
   MY: "MYR",
@@ -56,6 +75,12 @@ export const labsSchema = z
     uricAcidUmolL: z.number().min(50).max(1500).optional(),
     /** HbA1c, % */
     hba1cPercent: z.number().min(3).max(20).optional(),
+    /** 25-hydroxy vitamin D, nmol/L (ng/mL × 2.496) */
+    vitaminDNmolL: z.number().min(5).max(500).optional(),
+    /** Ferritin, µg/L (same number as ng/mL) */
+    ferritinUgL: z.number().min(1).max(5000).optional(),
+    /** Vitamin B12, pmol/L (pg/mL × 0.738) */
+    b12PmolL: z.number().min(20).max(3000).optional(),
   })
   .default({});
 
@@ -69,6 +94,8 @@ export const userProfileSchema = z.object({
   diet: z.enum(DIETS),
   /** Estimated protein already eaten from food each day, grams. Omit if unknown. */
   dietaryProteinG: z.number().min(0).max(500).optional(),
+  /** Servings of fish/seafood per week. Omit if unknown. */
+  fishServingsPerWeek: z.number().min(0).max(21).optional(),
   lactoseIntolerant: z.boolean().default(false),
   allergies: z.array(z.enum(ALLERGENS)).default([]),
   halalRequired: z.boolean().default(false),
@@ -76,6 +103,7 @@ export const userProfileSchema = z.object({
   monthlyBudget: z.number().min(0).optional(),
   conditions: z.array(z.enum(CONDITIONS)).default([]),
   medications: z.array(z.enum(MEDICATIONS)).default([]),
+  currentSupplements: z.array(z.enum(CURRENT_SUPPLEMENTS)).default([]),
   labs: labsSchema,
 });
 
@@ -135,7 +163,10 @@ export const dosingSchema = z.discriminatedUnion("kind", [
     kind: z.literal("fixed"),
     min: z.number().positive(),
     max: z.number().positive(),
+    /** e.g. "g", "mg", "µg", "IU", "mg sodium" */
     unit: z.string().min(1),
+    /** How often the dose is taken. Defaults to daily. */
+    schedule: z.enum(["daily", "every_other_day", "per_exercise_hour"]).default("daily"),
   }),
   z.object({
     /** Total daily protein target in g/kg, by goal; the supplement fills the gap left by food. */
@@ -225,10 +256,13 @@ export interface Notice {
   message: string;
 }
 
+export type DoseSchedule = "daily" | "every_other_day" | "per_exercise_hour";
+
 export interface Dose {
   min: number;
   max: number;
   unit: string;
+  schedule: DoseSchedule;
   text: string;
 }
 
@@ -239,8 +273,8 @@ export interface RankedProduct {
   costPerDay: number;
   costPerMonth: number;
   withinBudget: boolean | null;
-  /** How many servings (scoops / capsules) of this product cover the dose each day. */
-  servingsPerDay: { min: number; max: number };
+  /** How many servings (scoops / capsules) of this product make up one dose. */
+  servingsPerDose: { min: number; max: number };
   reasons: string[];
 }
 
@@ -256,6 +290,8 @@ export interface SupplementRecommendation {
   products: RankedProduct[];
   /** Explains why the product list is empty, if it is. */
   productsNote: string | null;
+  /** The user told us they already take this. */
+  alreadyTaking: boolean;
 }
 
 export interface RecommendationResult {

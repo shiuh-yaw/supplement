@@ -11,19 +11,25 @@ export const FACTS: Record<string, string> = {
   trainingDaysPerWeek: "Training sessions per week (number)",
   diet: '"omnivore" | "vegetarian" | "vegan"',
   dietaryProteinG: "Protein from food per day, g (may be missing)",
+  fishServingsPerWeek: "Fish/seafood servings per week (may be missing)",
   lactoseIntolerant: "boolean",
-  allergies: 'list: "dairy" | "soy" | "gluten" | "egg" | "peanut" | "tree_nut"',
+  allergies: 'list: "dairy" | "soy" | "gluten" | "egg" | "peanut" | "tree_nut" | "fish" | "shellfish"',
   halalRequired: "boolean",
   monthlyBudget: "Monthly budget, local currency (may be missing)",
   conditions:
-    'list: "kidney_disease" | "liver_disease" | "diabetes" | "hypertension" | "heart_disease" | "gout" | "pregnant" | "breastfeeding"',
+    'list: "kidney_disease" | "liver_disease" | "diabetes" | "hypertension" | "heart_disease" | "gout" | "pregnant" | "breastfeeding" | "iron_overload_risk"',
   medications:
     'list: "diuretic" | "nsaid_regular" | "nephrotoxic" | "anticoagulant" | "diabetes_medication" | "blood_pressure" | "other"',
+  currentSupplements:
+    'list: "protein" | "creatine" | "vitamin_d" | "omega_3" | "iron" | "vitamin_b12" | "electrolytes" | "multivitamin" | "calcium" | "magnesium" | "zinc" | "herbal"',
   "labs.egfr": "eGFR, mL/min/1.73m² (may be missing)",
   "labs.creatinineUmolL": "Serum creatinine, µmol/L (may be missing)",
   "labs.altUL": "ALT, U/L (may be missing)",
   "labs.uricAcidUmolL": "Uric acid, µmol/L (may be missing)",
   "labs.hba1cPercent": "HbA1c, % (may be missing)",
+  "labs.vitaminDNmolL": "25-OH vitamin D, nmol/L (ng/mL × 2.5) (may be missing)",
+  "labs.ferritinUgL": "Ferritin, µg/L = ng/mL (may be missing)",
+  "labs.b12PmolL": "Vitamin B12, pmol/L (pg/mL × 0.74) (may be missing)",
 };
 
 export function getFact(profile: UserProfile, fact: string): unknown {

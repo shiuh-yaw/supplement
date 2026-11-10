@@ -1,7 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { APP_NAME, TAGLINE } from "@/lib/site";
+
+export const viewport: Viewport = { themeColor: "#0f8a68" };
 
 export const metadata: Metadata = {
   title: `${APP_NAME} — ${TAGLINE}`,
@@ -19,9 +21,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <span className="text-lg font-bold text-brand-700">{APP_NAME}</span>
               <span className="hidden text-xs text-slate-500 sm:inline">{TAGLINE}</span>
             </Link>
-            <Link href="/check" className="btn-primary">
-              Start check
-            </Link>
+            <nav className="flex items-center gap-2">
+              <Link href="/history" className="btn-ghost px-3">
+                My checks
+              </Link>
+              <Link href="/check" className="btn-primary">
+                Start check
+              </Link>
+            </nav>
           </div>
         </header>
         <main className="mx-auto max-w-5xl px-4 py-8 sm:py-12 print:p-0">{children}</main>

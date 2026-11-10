@@ -1,23 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { fromUmolL, suggestOtherUnit, toUmolL } from "../src";
+import { defaultLabUnit, fromSi, suggestOtherUnit, toSi } from "../src";
 
 describe("lab unit conversion", () => {
-  it("converts creatinine and uric acid from mg/dL to µmol/L", () => {
-    expect(toUmolL("creatinineUmolL", 1, "mgdl")).toBe(88.4);
-    expect(toUmolL("uricAcidUmolL", 6, "mgdl")).toBe(356.9);
-    expect(toUmolL("creatinineUmolL", 80, "umol")).toBe(80);
+  it("converts conventional units to SI", () => {
+    expect(toSi("creatinineUmolL", 1, "conv")).toBe(88.4);
+    expect(toSi("uricAcidUmolL", 6, "conv")).toBe(356.9);
+    expect(toSi("vitaminDNmolL", 20, "conv")).toBe(49.9);
+    expect(toSi("b12PmolL", 300, "conv")).toBe(221.4);
+    expect(toSi("creatinineUmolL", 80, "si")).toBe(80);
   });
 
   it("converts back for display", () => {
-    expect(fromUmolL("creatinineUmolL", 88.42, "mgdl")).toBe(1);
+    expect(fromSi("creatinineUmolL", 88.42, "conv")).toBe(1);
+    expect(fromSi("vitaminDNmolL", 74.88, "conv")).toBe(30);
   });
 
   it("spots values entered in the wrong unit", () => {
-    expect(suggestOtherUnit("creatinineUmolL", 0.9, "umol")).toBe("mgdl");
-    expect(suggestOtherUnit("creatinineUmolL", 85, "mgdl")).toBe("umol");
-    expect(suggestOtherUnit("creatinineUmolL", 85, "umol")).toBeNull();
-    expect(suggestOtherUnit("uricAcidUmolL", 6.5, "umol")).toBe("mgdl");
-    expect(suggestOtherUnit("uricAcidUmolL", 380, "mgdl")).toBe("umol");
-    expect(suggestOtherUnit("uricAcidUmolL", 6.5, "mgdl")).toBeNull();
+    expect(suggestOtherUnit("creatinineUmolL", 0.9, "si")).toBe("conv");
+    expect(suggestOtherUnit("creatinineUmolL", 85, "conv")).toBe("si");
+    expect(suggestOtherUnit("creatinineUmolL", 85, "si")).toBeNull();
+    expect(suggestOtherUnit("uricAcidUmolL", 6.5, "si")).toBe("conv");
+    expect(suggestOtherUnit("vitaminDNmolL", 180, "conv")).toBe("si");
+  });
+
+  it("defaults to SI in Malaysia/Singapore and conventional elsewhere", () => {
+    expect(defaultLabUnit("MY")).toBe("si");
+    expect(defaultLabUnit("ID")).toBe("conv");
   });
 });

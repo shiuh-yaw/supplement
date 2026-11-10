@@ -1,12 +1,13 @@
 import {
-  DEFAULT_LAB_UNIT,
-  LAB_UNIT_LABELS,
   LAB_UNIT_SPECS,
+  defaultLabUnit,
+  labUnitLabel,
   suggestOtherUnit,
-  toUmolL,
+  toSi,
   type Allergen,
   type ConvertibleLab,
   type Country,
+  type CurrentSupplement,
   type Diet,
   type Goal,
   type HealthCondition,
@@ -28,17 +29,23 @@ export interface FormState {
   proteinMode: ProteinMode;
   dietaryProteinG: string;
   portions: string;
+  /** "" = not answered */
+  fishServingsPerWeek: "" | "0" | "1" | "2";
   lactoseIntolerant: boolean;
   allergies: Allergen[];
   halalRequired: boolean;
   monthlyBudget: string;
   conditions: HealthCondition[];
   medications: MedicationClass[];
+  currentSupplements: CurrentSupplement[];
   egfr: string;
   creatinineUmolL: string;
   altUL: string;
   uricAcidUmolL: string;
   hba1cPercent: string;
+  vitaminDNmolL: string;
+  ferritinUgL: string;
+  b12PmolL: string;
   /** null = use the usual unit for the selected country. */
   labUnits: Record<ConvertibleLab, LabUnit | null>;
   consent: boolean;
@@ -55,18 +62,23 @@ export const initialForm: FormState = {
   proteinMode: "portions",
   dietaryProteinG: "",
   portions: "2",
+  fishServingsPerWeek: "",
   lactoseIntolerant: false,
   allergies: [],
   halalRequired: false,
   monthlyBudget: "",
   conditions: [],
   medications: [],
+  currentSupplements: [],
   egfr: "",
   creatinineUmolL: "",
   altUL: "",
   uricAcidUmolL: "",
   hba1cPercent: "",
-  labUnits: { creatinineUmolL: null, uricAcidUmolL: null },
+  vitaminDNmolL: "",
+  ferritinUgL: "",
+  b12PmolL: "",
+  labUnits: { creatinineUmolL: null, uricAcidUmolL: null, vitaminDNmolL: null, b12PmolL: null },
   consent: false,
 };
 
@@ -84,6 +96,9 @@ export type FieldKey =
   | "altUL"
   | "uricAcidUmolL"
   | "hba1cPercent"
+  | "vitaminDNmolL"
+  | "ferritinUgL"
+  | "b12PmolL"
   | "consent";
 
 export const FIELD_STEP: Record<FieldKey, number> = {
@@ -98,6 +113,9 @@ export const FIELD_STEP: Record<FieldKey, number> = {
   altUL: 3,
   uricAcidUmolL: 3,
   hba1cPercent: 3,
+  vitaminDNmolL: 3,
+  ferritinUgL: 3,
+  b12PmolL: 3,
   consent: 3,
 };
 
@@ -113,12 +131,18 @@ export const FIELD_LABELS: Record<FieldKey, string> = {
   altUL: "ALT / SGPT",
   uricAcidUmolL: "Uric acid",
   hba1cPercent: "HbA1c",
+  vitaminDNmolL: "Vitamin D",
+  ferritinUgL: "Ferritin",
+  b12PmolL: "Vitamin B12",
   consent: "Confirmation",
 };
 
 export type FieldErrors = Partial<Record<FieldKey, string>>;
 
-export const labUnit = (f: FormState, lab: ConvertibleLab): LabUnit => f.labUnits[lab] ?? DEFAULT_LAB_UNIT[f.country];
+export const labUnit = (f: FormState, lab: ConvertibleLab): LabUnit => f.labUnits[lab] ?? defaultLabUnit(f.country);
+
+export const CONVERTIBLE_LABS: ConvertibleLab[] = ["creatinineUmolL", "uricAcidUmolL", "vitaminDNmolL", "b12PmolL"];
+export const isConvertible = (key: string): key is ConvertibleLab => (CONVERTIBLE_LABS as string[]).includes(key);
 
 const num = (v: string): number | undefined => (v.trim() === "" ? undefined : Number(v));
 
@@ -127,15 +151,18 @@ const LAB_RANGES = {
   egfr: { min: 1, max: 200, unit: "mL/min/1.73m²" },
   altUL: { min: 1, max: 5000, unit: "U/L" },
   hba1cPercent: { min: 3, max: 20, unit: "%" },
+  ferritinUgL: { min: 1, max: 5000, unit: "µg/L (ng/mL)" },
   creatinineUmolL: { min: 10, max: 2000 },
   uricAcidUmolL: { min: 50, max: 1500 },
+  vitaminDNmolL: { min: 5, max: 500 },
+  b12PmolL: { min: 20, max: 3000 },
 } as const;
 
 /** Lab value in SI units (µmol/L for creatinine and uric acid), or undefined if blank. */
 function labValue(f: FormState, key: keyof typeof LAB_RANGES): number | undefined {
   const raw = num(f[key]);
   if (raw === undefined) return undefined;
-  if (key === "creatinineUmolL" || key === "uricAcidUmolL") return toUmolL(key, raw, labUnit(f, key));
+  if (isConvertible(key)) return toSi(key, raw, labUnit(f, key));
   return raw;
 }
 
@@ -154,18 +181,23 @@ export function toProfile(f: FormState): UserProfileInput {
     trainingDaysPerWeek: Number(f.trainingDaysPerWeek),
     diet: f.diet,
     dietaryProteinG,
+    fishServingsPerWeek: f.diet === "vegan" || f.fishServingsPerWeek === "" ? undefined : Number(f.fishServingsPerWeek),
     lactoseIntolerant: f.lactoseIntolerant,
     allergies: f.allergies,
     halalRequired: f.halalRequired,
     monthlyBudget: num(f.monthlyBudget),
     conditions: f.conditions,
     medications: f.medications,
+    currentSupplements: f.currentSupplements,
     labs: {
       egfr: labValue(f, "egfr"),
       creatinineUmolL: labValue(f, "creatinineUmolL"),
       altUL: labValue(f, "altUL"),
       uricAcidUmolL: labValue(f, "uricAcidUmolL"),
       hba1cPercent: labValue(f, "hba1cPercent"),
+      vitaminDNmolL: labValue(f, "vitaminDNmolL"),
+      ferritinUgL: labValue(f, "ferritinUgL"),
+      b12PmolL: labValue(f, "b12PmolL"),
     },
   };
 }
@@ -194,7 +226,7 @@ export function validate(f: FormState): FieldErrors {
     e.monthlyBudget = "Enter a number, or leave it blank.";
   }
 
-  for (const key of ["egfr", "altUL", "hba1cPercent"] as const) {
+  for (const key of ["egfr", "altUL", "hba1cPercent", "ferritinUgL"] as const) {
     if (f[key].trim() === "") continue;
     const r = LAB_RANGES[key];
     const v = Number(f[key]);
@@ -203,7 +235,7 @@ export function validate(f: FormState): FieldErrors {
     }
   }
 
-  for (const key of ["creatinineUmolL", "uricAcidUmolL"] as const) {
+  for (const key of CONVERTIBLE_LABS) {
     if (f[key].trim() === "") continue;
     const unit = labUnit(f, key);
     if (!isNumber(f[key])) {
@@ -213,14 +245,14 @@ export function validate(f: FormState): FieldErrors {
     const raw = Number(f[key]);
     const other = suggestOtherUnit(key, raw, unit);
     if (other) {
-      e[key] = `${raw} ${LAB_UNIT_LABELS[unit]} is unusual. Your report probably uses ${LAB_UNIT_LABELS[other]} — switch the unit above.`;
+      e[key] = `${raw} ${labUnitLabel(key, unit)} is unusual. Your report probably uses ${labUnitLabel(key, other)} — switch the unit above.`;
       continue;
     }
-    const si = toUmolL(key, raw, unit);
+    const si = toSi(key, raw, unit);
     const r = LAB_RANGES[key];
     if (si < r.min || si > r.max) {
       const [lo, hi] = LAB_UNIT_SPECS[key].typical[unit];
-      e[key] = `That value is out of range. Typical is ${lo}–${hi} ${LAB_UNIT_LABELS[unit]}. Check the unit on your report, or leave it blank.`;
+      e[key] = `That value is out of range. Typical is ${lo}–${hi} ${labUnitLabel(key, unit)}. Check the unit on your report, or leave it blank.`;
     }
   }
 

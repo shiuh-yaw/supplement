@@ -44,9 +44,12 @@ export function decodeProfile(encoded: string): UserProfileInput | null {
   }
 }
 
-export function shareUrl(origin: string, profile: UserProfileInput): string {
-  return `${origin}/check#${PARAM}=${encodeProfile(profile)}`;
+export function shareUrl(origin: string, profile: UserProfileInput, opts: { mine?: boolean } = {}): string {
+  return `${origin}/check#${PARAM}=${encodeProfile(profile)}${opts.mine ? "&mine=1" : ""}`;
 }
+
+/** True for links opened from the user's own history (not shared by someone else). */
+export const isOwnLink = (hash: string) => new URLSearchParams(hash.replace(/^#/, "")).get("mine") === "1";
 
 export function readSharedProfile(hash: string): UserProfileInput | null {
   const match = new URLSearchParams(hash.replace(/^#/, "")).get(PARAM);

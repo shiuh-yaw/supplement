@@ -5,10 +5,12 @@ import {
   ALLERGEN_LABELS,
   CONDITION_LABELS,
   COUNTRY_LABELS,
+  CURRENT_SUPPLEMENT_LABELS,
   DIET_LABELS,
   GOAL_LABELS,
   MEDICATION_LABELS,
-  fromUmolL,
+  fromSi,
+  type Dose,
   type Notice,
   type RankedProduct,
   type RecommendationResult,
@@ -17,6 +19,8 @@ import {
 } from "@supplement/engine";
 import { APP_NAME } from "@/lib/site";
 import { marketplaceLabel, shareUrl } from "@/lib/share";
+import { saveCheck } from "@/lib/history";
+import { buildReminderIcs } from "@/lib/reminders";
 
 const money = (amount: number, currency: string) =>
   new Intl.NumberFormat("en", {
@@ -46,13 +50,22 @@ function NoticeList({ items, tone }: { items: Notice[]; tone: "red" | "amber" })
   );
 }
 
-function ProductRow({ ranked, rank }: { ranked: RankedProduct; rank: number }) {
-  const { product, price, servingsPerDay } = ranked;
+const SCHEDULE_PHRASE: Record<Dose["schedule"], string> = {
+  daily: "a day",
+  every_other_day: "every other day",
+  per_exercise_hour: "per hour of exercise",
+};
+
+function ProductRow({ ranked, rank, dose, ingredient }: { ranked: RankedProduct; rank: number; dose: Dose; ingredient: string }) {
+  const { product, price, servingsPerDose } = ranked;
   const servings =
-    servingsPerDay.min === servingsPerDay.max
-      ? servingsText(servingsPerDay.min)
-      : `${servingsText(servingsPerDay.min)}–${servingsText(servingsPerDay.max)}`;
-  const one = servingsPerDay.max <= 1;
+    servingsPerDose.min === servingsPerDose.max
+      ? servingsText(servingsPerDose.min)
+      : `${servingsText(servingsPerDose.min)}–${servingsText(servingsPerDose.max)}`;
+  const one = servingsPerDose.max <= 1;
+  // "27 g protein", "1000 IU vitamin D3", "65 mg iron"
+  const bareUnit = /^(g|mg|µg|IU)$/.test(dose.unit);
+  const active = `${product.activePerServingG.toLocaleString("en")} ${dose.unit}${bareUnit ? ` ${ingredient}` : ""}`;
   return (
     <li className="rounded-xl border border-slate-200 p-4 break-inside-avoid">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -66,8 +79,8 @@ function ProductRow({ ranked, rank }: { ranked: RankedProduct; rank: number }) {
         </div>
       </div>
       <p className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-700">
-        Take <strong>{servings} {one ? "serving" : "servings"} a day</strong>
-        <span className="text-slate-600"> · 1 serving = {product.servingSizeG} g, with {product.activePerServingG} g {product.supplementSlug === "creatine" ? "creatine" : "protein"}</span>
+        Take <strong>{servings} {one ? "serving" : "servings"} {SCHEDULE_PHRASE[dose.schedule]}</strong>
+        <span className="text-slate-600"> · 1 serving has {active}</span>
       </p>
       <ul className="mt-2 flex flex-wrap gap-1.5">
         {ranked.reasons.map((r) => (
@@ -92,7 +105,10 @@ function SupplementCard({ item }: { item: SupplementRecommendation }) {
   return (
     <article className="card space-y-4 break-inside-avoid print:shadow-none">
       <header className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-lg font-semibold">{item.supplement.name}</h3>
+        <h3 className="text-lg font-semibold">
+          {item.supplement.name}
+          {item.alreadyTaking && <span className="ml-2 align-middle text-xs font-medium text-slate-500">· you take this now</span>}
+        </h3>
         <div className="flex items-center gap-2">
           <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-600" title="Strength of scientific evidence">
             Evidence {item.supplement.evidenceGrade}
@@ -134,7 +150,9 @@ function SupplementCard({ item }: { item: SupplementRecommendation }) {
           {top.length > 0 ? (
             <>
               <ol className="space-y-2">
-                {top.map((p, i) => <ProductRow key={p.product.id} ranked={p} rank={i + 1} />)}
+                {top.map((p, i) => (
+                  <ProductRow key={p.product.id} ranked={p} rank={i + 1} dose={item.dose!} ingredient={item.supplement.name.toLowerCase()} />
+                ))}
               </ol>
               {top.some((p) => p.price.url) && (
                 <p className="mt-2 text-xs text-slate-500 print:hidden">
@@ -171,11 +189,16 @@ function AnswersSummary({ profile }: { profile: RecommendationResult["profile"] 
   const labs: string[] = [];
   if (p.labs.egfr !== undefined) labs.push(`eGFR ${p.labs.egfr} mL/min/1.73m²`);
   if (p.labs.creatinineUmolL !== undefined)
-    labs.push(`Creatinine ${p.labs.creatinineUmolL} µmol/L (${fromUmolL("creatinineUmolL", p.labs.creatinineUmolL, "mgdl")} mg/dL)`);
+    labs.push(`Creatinine ${p.labs.creatinineUmolL} µmol/L (${fromSi("creatinineUmolL", p.labs.creatinineUmolL, "conv")} mg/dL)`);
   if (p.labs.altUL !== undefined) labs.push(`ALT ${p.labs.altUL} U/L`);
   if (p.labs.uricAcidUmolL !== undefined)
-    labs.push(`Uric acid ${p.labs.uricAcidUmolL} µmol/L (${fromUmolL("uricAcidUmolL", p.labs.uricAcidUmolL, "mgdl")} mg/dL)`);
+    labs.push(`Uric acid ${p.labs.uricAcidUmolL} µmol/L (${fromSi("uricAcidUmolL", p.labs.uricAcidUmolL, "conv")} mg/dL)`);
   if (p.labs.hba1cPercent !== undefined) labs.push(`HbA1c ${p.labs.hba1cPercent}%`);
+  if (p.labs.vitaminDNmolL !== undefined)
+    labs.push(`Vitamin D ${p.labs.vitaminDNmolL} nmol/L (${fromSi("vitaminDNmolL", p.labs.vitaminDNmolL, "conv")} ng/mL)`);
+  if (p.labs.ferritinUgL !== undefined) labs.push(`Ferritin ${p.labs.ferritinUgL} µg/L`);
+  if (p.labs.b12PmolL !== undefined)
+    labs.push(`B12 ${p.labs.b12PmolL} pmol/L (${fromSi("b12PmolL", p.labs.b12PmolL, "conv")} pg/mL)`);
 
   const rows: [string, string][] = [
     ["Age / sex", `${p.age}, ${p.sex}`],
@@ -183,9 +206,11 @@ function AnswersSummary({ profile }: { profile: RecommendationResult["profile"] 
     ["Country", COUNTRY_LABELS[p.country]],
     ["Goal", `${GOAL_LABELS[p.goal]}, ${p.trainingDaysPerWeek} workouts/week`],
     ["Diet", `${DIET_LABELS[p.diet]}${p.dietaryProteinG !== undefined ? `, ~${Math.round(p.dietaryProteinG)} g protein/day from food` : ""}`],
+    ["Fish / seafood", p.fishServingsPerWeek === undefined ? "Not answered" : `${p.fishServingsPerWeek}${p.fishServingsPerWeek >= 2 ? "+" : ""} times/week`],
     ["Allergies", list(p.allergies.map((a) => ALLERGEN_LABELS[a]))],
     ["Conditions", list(p.conditions.map((c) => CONDITION_LABELS[c]))],
     ["Medications", list(p.medications.map((m) => MEDICATION_LABELS[m]))],
+    ["Supplements taken now", list(p.currentSupplements.map((s) => CURRENT_SUPPLEMENT_LABELS[s]))],
     ["Lab values", labs.length ? labs.join("; ") : "None entered"],
   ];
   return (
@@ -205,6 +230,18 @@ function AnswersSummary({ profile }: { profile: RecommendationResult["profile"] 
 
 function ShareBar({ result, profile }: { result: RecommendationResult; profile: UserProfileInput }) {
   const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState<"idle" | "saved" | "failed">("idle");
+  const ics = buildReminderIcs(result);
+
+  function downloadReminders() {
+    if (!ics) return;
+    const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${APP_NAME.toLowerCase()}-reminders.ics`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   const url = shareUrl(window.location.origin, profile);
   const summary = result.items
     .filter((i) => i.status === "recommended" || i.status === "blocked")
@@ -232,7 +269,29 @@ function ShareBar({ result, profile }: { result: RecommendationResult; profile: 
 
   return (
     <section className="card space-y-3 print:hidden">
-      <h2 className="font-semibold">Save or share</h2>
+      <h2 className="font-semibold">Keep track</h2>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="btn-primary"
+          disabled={saved === "saved"}
+          onClick={() => setSaved(saveCheck(profile, result) ? "saved" : "failed")}
+        >
+          {saved === "saved" ? "Saved on this device ✓" : "Save to my history"}
+        </button>
+        {ics && (
+          <button type="button" className="btn-ghost" onClick={downloadReminders}>
+            Add daily reminders to my calendar
+          </button>
+        )}
+      </div>
+      {saved === "saved" && (
+        <p className="text-xs text-slate-500">
+          Saved in this browser only. <a href="/history" className="font-medium text-brand-700 underline">See your history</a> to compare checks over time.
+        </p>
+      )}
+      {saved === "failed" && <p className="text-xs text-red-700">This browser doesn&apos;t allow saving (private mode?).</p>}
+      <h2 className="pt-2 font-semibold">Share</h2>
       <div className="flex flex-wrap gap-2">
         <a className="btn bg-[#25D366] text-white hover:bg-[#1ebe5b]" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer">
           Share on WhatsApp
@@ -256,14 +315,22 @@ export function Results({
   profile,
   shared,
   onRestart,
+  onEdit,
 }: {
   result: RecommendationResult;
   profile: UserProfileInput;
   shared: boolean;
   onRestart: () => void;
+  /** Go back to the questions with the answers kept (not available for shared links). */
+  onEdit?: () => void;
 }) {
   const order = { recommended: 0, blocked: 1, not_needed: 2, not_recommended: 3 } as const;
   const items = [...result.items].sort((a, b) => order[a.status] - order[b.status]);
+  // Full cards for anything to act on; a compact list for the rest.
+  const needsCard = (i: SupplementRecommendation) =>
+    i.status === "recommended" || i.status === "blocked" || i.alreadyTaking || i.cautions.length > 0;
+  const cards = items.filter(needsCard);
+  const quiet = items.filter((i) => !needsCard(i));
   const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
   return (
@@ -284,7 +351,10 @@ export function Results({
           <p className="hidden text-xs text-slate-500 print:block">Prepared with {APP_NAME} on {today}</p>
         </div>
         {!shared && (
-          <button type="button" className="btn-ghost print:hidden" onClick={onRestart}>Start over</button>
+          <div className="flex gap-2 print:hidden">
+            {onEdit && <button type="button" className="btn-ghost" onClick={onEdit}>Edit my answers</button>}
+            <button type="button" className="btn-ghost" onClick={onRestart}>Start over</button>
+          </div>
         )}
       </div>
 
@@ -293,7 +363,26 @@ export function Results({
       <NoticeList items={result.generalBlocks} tone="red" />
       <NoticeList items={result.generalCautions} tone="amber" />
 
-      {items.map((item) => <SupplementCard key={item.supplement.slug} item={item} />)}
+      {cards.length === 0 && (
+        <div className="card text-sm text-slate-600">
+          Good news: based on your answers, you don&apos;t need any of the supplements we cover right now.
+        </div>
+      )}
+      {cards.map((item) => <SupplementCard key={item.supplement.slug} item={item} />)}
+
+      {quiet.length > 0 && (
+        <section className="card break-inside-avoid">
+          <h2 className="font-semibold">Not needed for you right now</h2>
+          <ul className="mt-2 divide-y divide-slate-100 text-sm">
+            {quiet.map((i) => (
+              <li key={i.supplement.slug} className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-2">
+                <span className="font-medium">{i.supplement.name}</span>
+                <span className="text-slate-500">{i.reasons.at(-1)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {!shared && <ShareBar result={result} profile={profile} />}
 

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@supplement/db";
 import { ProductForm } from "@/components/ProductForm";
-import { PRODUCT_FORMS } from "@/lib/constants";
+import { PRODUCT_FORMS, doseUnitOf } from "@/lib/constants";
 import { deleteProduct } from "../actions";
 import { ConfirmButton } from "@/components/ConfirmButton";
 
@@ -11,7 +11,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const [product, supplements] = await Promise.all([
     prisma.product.findUnique({ where: { id }, include: { prices: true } }),
-    prisma.supplement.findMany({ select: { id: true, name: true }, orderBy: { sortOrder: "asc" } }),
+    prisma.supplement.findMany({ select: { id: true, name: true, dosing: true }, orderBy: { sortOrder: "asc" } }),
   ]);
   if (!product) notFound();
 
@@ -24,7 +24,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
           <ConfirmButton className="btn-danger" message="Delete this product permanently?">Delete</ConfirmButton>
         </form>
       </div>
-      <ProductForm product={product} supplements={supplements} forms={PRODUCT_FORMS} />
+      <ProductForm product={product} supplements={supplements.map((s) => ({ id: s.id, name: s.name, unit: doseUnitOf(s.dosing) }))} forms={PRODUCT_FORMS} />
     </div>
   );
 }

@@ -34,7 +34,7 @@ describe("validate", () => {
   });
 
   it("respects a unit the user picked over the country default", () => {
-    const form: FormState = { ...valid, country: "ID", creatinineUmolL: "90", labUnits: { creatinineUmolL: "umol", uricAcidUmolL: null } };
+    const form: FormState = { ...valid, country: "ID", creatinineUmolL: "90", labUnits: { creatinineUmolL: "si", uricAcidUmolL: null, vitaminDNmolL: null, b12PmolL: null } };
     expect(validate(form)).toEqual({});
     expect(toProfile(form).labs?.creatinineUmolL).toBe(90);
   });
@@ -48,5 +48,19 @@ describe("validate", () => {
     expect(fieldFromIssuePath(["labs", "egfr"])).toBe("egfr");
     expect(fieldFromIssuePath(["age"])).toBe("age");
     expect(fieldFromIssuePath(["unknown"])).toBeNull();
+  });
+});
+
+describe("new lab fields", () => {
+  it("converts vitamin D and B12 from conventional units for Indonesia", () => {
+    const form = { ...valid, country: "ID" as const, vitaminDNmolL: "18", b12PmolL: "250", ferritinUgL: "25" };
+    expect(validate(form)).toEqual({});
+    expect(toProfile(form).labs).toMatchObject({ vitaminDNmolL: 44.9, b12PmolL: 184.5, ferritinUgL: 25 });
+  });
+
+  it("passes fish intake and current supplements, but drops fish for vegans", () => {
+    const form: FormState = { ...valid, fishServingsPerWeek: "0", currentSupplements: ["multivitamin"] };
+    expect(toProfile(form)).toMatchObject({ fishServingsPerWeek: 0, currentSupplements: ["multivitamin"] });
+    expect(toProfile({ ...form, diet: "vegan" }).fishServingsPerWeek).toBeUndefined();
   });
 });

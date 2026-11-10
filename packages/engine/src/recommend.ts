@@ -35,6 +35,7 @@ export function recommend(input: UserProfileInput, kb: KnowledgeBase): Recommend
       .filter((r) => r.effect === "recommend")
       .sort((a, b) => b.priority - a.priority);
 
+    const alreadyTaking = (profile.currentSupplements as string[]).includes(supplement.slug);
     const base: SupplementRecommendation = {
       supplement: {
         slug: supplement.slug,
@@ -52,18 +53,31 @@ export function recommend(input: UserProfileInput, kb: KnowledgeBase): Recommend
       blocks,
       products: [],
       productsNote: null,
+      alreadyTaking,
     };
 
     // Safety first: any block (global or specific) wins over every recommendation.
     if (generalBlocks.length > 0 || blocks.length > 0) {
-      return { ...base, status: "blocked" };
+      return {
+        ...base,
+        status: "blocked",
+        reasons: alreadyTaking ? ["You told us you take this now. Please check with your doctor before continuing."] : [],
+      };
     }
 
     if (recommendRules.length === 0) {
-      return { ...base, reasons: ["Not indicated for your goal and profile."] };
+      return {
+        ...base,
+        reasons: [
+          alreadyTaking
+            ? "You take this now, but nothing in your answers shows you need it. Ask your doctor or pharmacist whether to continue."
+            : "Not indicated for your goal and profile.",
+        ],
+      };
     }
 
     const reasons = recommendRules.map((r) => r.message);
+    if (alreadyTaking) reasons.unshift("You already take this — keep going, and check your product gives the amount below.");
     const outcome = computeDose(supplement.dosing, profile);
     if (outcome.kind === "not_needed") {
       return { ...base, status: "not_needed", reasons: [...reasons, ...outcome.reasons] };

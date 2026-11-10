@@ -8,13 +8,15 @@ import {
   CURRENCY_BY_COUNTRY,
   DIET_LABELS,
   GOAL_LABELS,
-  LAB_UNIT_LABELS,
+  CURRENT_SUPPLEMENT_LABELS,
   LAB_UNIT_SPECS,
   MEDICATION_LABELS,
+  labUnitLabel,
   suggestOtherUnit,
   type Allergen,
   type ConvertibleLab,
   type Country,
+  type CurrentSupplement,
   type Diet,
   type Goal,
   type HealthCondition,
@@ -30,6 +32,7 @@ import {
   errorsForStep,
   fieldFromIssuePath,
   initialForm,
+  isConvertible,
   labUnit,
   toProfile,
   validate,
@@ -37,7 +40,8 @@ import {
   type FieldKey,
   type FormState,
 } from "@/lib/form";
-import { readSharedProfile } from "@/lib/share";
+import { isOwnLink, readSharedProfile } from "@/lib/share";
+import { LabUpload, type ExtractResult } from "./LabUpload";
 import { Results } from "./Results";
 
 function toggle<T>(list: T[], value: T): T[] {
@@ -53,7 +57,22 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   );
 }
 
-const LAB_FIELDS = ["egfr", "creatinineUmolL", "altUL", "uricAcidUmolL", "hba1cPercent"] as const;
+const LAB_FIELDS = [
+  "egfr",
+  "creatinineUmolL",
+  "altUL",
+  "uricAcidUmolL",
+  "hba1cPercent",
+  "vitaminDNmolL",
+  "ferritinUgL",
+  "b12PmolL",
+] as const;
+
+const FISH_OPTIONS = [
+  ["0", "Rarely or never"],
+  ["1", "About once a week"],
+  ["2", "Twice a week or more"],
+] as const;
 
 export function Questionnaire() {
   const [step, setStep] = useState(0);
@@ -65,10 +84,13 @@ export function Questionnaire() {
   const [result, setResult] = useState<RecommendationResult | null>(null);
   const [profile, setProfile] = useState<UserProfileInput | null>(null);
   const [shared, setShared] = useState(false);
+  /** Lab fields filled from an uploaded report, highlighted until the user edits them. */
+  const [fromReport, setFromReport] = useState<Set<string>>(new Set());
   const cardRef = useRef<HTMLDivElement>(null);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
+    setFromReport((s) => (s.has(key) ? new Set([...s].filter((k) => k !== key)) : s));
     if (key in FIELD_STEP) setErrors((e) => ({ ...e, [key]: undefined }));
   };
 
@@ -109,7 +131,7 @@ export function Questionnaire() {
   useEffect(() => {
     const p = readSharedProfile(window.location.hash);
     if (p) {
-      setShared(true);
+      setShared(!isOwnLink(window.location.hash));
       void fetchResult(p);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -145,25 +167,49 @@ export function Questionnaire() {
     void fetchResult(toProfile(form));
   }
 
-  function restart() {
+  function leaveResults() {
     setResult(null);
     setProfile(null);
     setShared(false);
+    setErrors({});
     setStep(0);
     if (window.location.hash) history.replaceState(null, "", window.location.pathname);
   }
 
-  if (result && profile) {
-    return <Results result={result} profile={profile} shared={shared} onRestart={restart} />;
+  /** Clear everything and begin a fresh check. */
+  function restart() {
+    leaveResults();
+    setForm(initialForm);
+    setFromReport(new Set());
+    setLabsOpen(false);
   }
-  if (shared && loading) {
-    return <p className="text-center text-slate-600">Loading shared results…</p>;
+
+  if (result && profile) {
+    return (
+      <Results
+        result={result}
+        profile={profile}
+        shared={shared}
+        onRestart={restart}
+        onEdit={shared ? undefined : leaveResults}
+      />
+    );
+  }
+  if (loading && !result && typeof window !== "undefined" && readSharedProfile(window.location.hash)) {
+    return <p className="text-center text-slate-600">Loading results…</p>;
   }
 
   const currency = CURRENCY_BY_COUNTRY[form.country];
   const invalid = (key: FieldKey) =>
     errors[key] ? { "aria-invalid": true as const, "aria-describedby": `${key}-error` } : {};
   const errorCount = Object.values(errors).filter(Boolean).length;
+
+  function applyExtract(r: ExtractResult) {
+    setForm((f) => ({ ...f, ...r.values, labUnits: { ...f.labUnits, ...r.units } }));
+    setErrors((e) => ({ ...e, ...Object.fromEntries(Object.keys(r.values).map((k) => [k, undefined])) }));
+    setFromReport(new Set(Object.keys(r.values)));
+    setLabsOpen(true);
+  }
 
   function setUnit(lab: ConvertibleLab, unit: LabUnit) {
     setForm((f) => ({ ...f, labUnits: { ...f.labUnits, [lab]: unit } }));
@@ -263,6 +309,19 @@ export function Questionnaire() {
               ))}
             </div>
 
+            {form.diet !== "vegan" && (
+              <fieldset>
+                <legend className="label">How often do you eat fish or seafood?</legend>
+                <div className="flex flex-wrap gap-2">
+                  {FISH_OPTIONS.map(([v, label]) => (
+                    <button key={v} type="button" aria-pressed={form.fishServingsPerWeek === v} className={`chip ${form.fishServingsPerWeek === v ? "chip-on" : ""}`} onClick={() => set("fishServingsPerWeek", form.fishServingsPerWeek === v ? "" : v)}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+
             <fieldset className="space-y-3">
               <legend className="label">How much protein do you already eat?</legend>
               <div className="flex flex-wrap gap-2">
@@ -352,14 +411,26 @@ export function Questionnaire() {
                 ))}
               </div>
             </fieldset>
+            <fieldset>
+              <legend className="label">Which supplements do you take now?</legend>
+              <p className="-mt-1 mb-2 text-xs text-slate-500">So we can spot double-ups and interactions.</p>
+              <div className="flex flex-wrap gap-2">
+                {(Object.entries(CURRENT_SUPPLEMENT_LABELS) as [CurrentSupplement, string][]).map(([s, label]) => (
+                  <button key={s} type="button" aria-pressed={form.currentSupplements.includes(s)} className={`chip ${form.currentSupplements.includes(s) ? "chip-on" : ""}`} onClick={() => set("currentSupplements", toggle(form.currentSupplements, s))}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
 
             <details className="rounded-xl border border-slate-200 p-4" open={labsOpen} onToggle={(e) => setLabsOpen((e.target as HTMLDetailsElement).open)}>
               <summary className="cursor-pointer text-sm font-semibold text-brand-700">
                 Add numbers from your blood test report (optional)
               </summary>
               <p className="mt-2 text-xs text-slate-500">
-                Look for these names on your report. For creatinine and uric acid, pick the unit printed next to the number.
+                Look for these names on your report. Where there&apos;s a unit switch, pick the unit printed next to the number.
               </p>
+              <LabUpload onExtract={applyExtract} />
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 {([
                   ["egfr", "eGFR (mL/min/1.73m²)", "Kidney function"],
@@ -367,39 +438,43 @@ export function Questionnaire() {
                   ["altUL", "ALT / SGPT (U/L)", "Liver enzyme"],
                   ["uricAcidUmolL", "Uric acid", "Gout risk"],
                   ["hba1cPercent", "HbA1c (%)", "Blood sugar, 3-month average"],
+                  ["vitaminDNmolL", "Vitamin D (25-OH)", "Vitamin D status"],
+                  ["ferritinUgL", "Ferritin (µg/L or ng/mL)", "Iron stores"],
+                  ["b12PmolL", "Vitamin B12", "B12 status"],
                 ] as const).map(([key, label, hint]) => {
-                  const convertible = key === "creatinineUmolL" || key === "uricAcidUmolL";
-                  const unit = convertible ? labUnit(form, key) : null;
+                  const lab = isConvertible(key) ? key : null;
+                  const unit = lab ? labUnit(form, lab) : null;
                   const suggestion =
-                    convertible && unit && form[key].trim() !== "" && Number.isFinite(Number(form[key]))
-                      ? suggestOtherUnit(key, Number(form[key]), unit)
+                    lab && unit && form[key].trim() !== "" && Number.isFinite(Number(form[key]))
+                      ? suggestOtherUnit(lab, Number(form[key]), unit)
                       : null;
                   return (
                     <div key={key}>
                       <div className="mb-1 flex items-center justify-between gap-2">
                         <label className="text-sm font-medium text-slate-700" htmlFor={key}>{label}</label>
-                        {convertible && unit && (
+                        {lab && unit && (
                           <div role="group" aria-label={`${label} unit`} className="flex overflow-hidden rounded-lg border border-slate-300 text-xs">
-                            {(["umol", "mgdl"] as const).map((u) => (
+                            {(["si", "conv"] as const).map((u) => (
                               <button
                                 key={u}
                                 type="button"
                                 aria-pressed={unit === u}
                                 className={`px-2 py-1 ${unit === u ? "bg-brand-600 text-white" : "bg-white text-slate-600"}`}
-                                onClick={() => setUnit(key as ConvertibleLab, u)}
+                                onClick={() => setUnit(lab, u)}
                               >
-                                {LAB_UNIT_LABELS[u]}
+                                {labUnitLabel(lab, u)}
                               </button>
                             ))}
                           </div>
                         )}
                       </div>
-                      <input id={key} className="input" type="number" inputMode="decimal" step="any" value={form[key]} onChange={(e) => set(key, e.target.value)} {...invalid(key)} />
-                      {suggestion ? (
+                      <input id={key} className={`input ${fromReport.has(key) ? "border-amber-400 bg-amber-50" : ""}`} type="number" inputMode="decimal" step="any" value={form[key]} onChange={(e) => set(key, e.target.value)} {...invalid(key)} />
+                      {fromReport.has(key) && <p className="mt-1 text-xs text-amber-800">From your report — please check</p>}
+                      {lab && suggestion ? (
                         <div id={`${key}-error`} className="mt-1 rounded-lg bg-amber-50 p-2 text-sm text-amber-900" role="alert">
-                          This looks like {LAB_UNIT_LABELS[suggestion]}.{" "}
-                          <button type="button" className="font-semibold underline" onClick={() => setUnit(key as ConvertibleLab, suggestion)}>
-                            Switch to {LAB_UNIT_LABELS[suggestion]}
+                          This looks like {labUnitLabel(lab, suggestion)}.{" "}
+                          <button type="button" className="font-semibold underline" onClick={() => setUnit(lab, suggestion)}>
+                            Switch to {labUnitLabel(lab, suggestion)}
                           </button>
                         </div>
                       ) : (
@@ -407,8 +482,8 @@ export function Questionnaire() {
                       )}
                       <p className="mt-1 text-xs text-slate-500">
                         {hint}
-                        {convertible && unit && (
-                          <> · typical {LAB_UNIT_SPECS[key].typical[unit].join("–")} {LAB_UNIT_LABELS[unit]}</>
+                        {lab && unit && (
+                          <> · typical {LAB_UNIT_SPECS[lab].typical[unit].join("–")} {labUnitLabel(lab, unit)}</>
                         )}
                       </p>
                     </div>

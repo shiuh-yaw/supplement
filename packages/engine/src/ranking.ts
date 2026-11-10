@@ -36,8 +36,14 @@ export function rankProducts(products: Product[], profile: UserProfile, dose: Do
   const { eligible } = filterProducts(products, profile);
   if (eligible.length === 0) return [];
 
-  // Use the middle of the dose range for cost estimates.
-  const dailyActive = (dose.min + dose.max) / 2;
+  // Use the middle of the dose range for cost estimates, averaged per day.
+  const dosesPerDay =
+    dose.schedule === "every_other_day"
+      ? 0.5
+      : dose.schedule === "per_exercise_hour"
+        ? profile.trainingDaysPerWeek / 7 // assume about one long session per training day
+        : 1;
+  const dailyActive = ((dose.min + dose.max) / 2) * dosesPerDay;
 
   const priced = eligible.map((product) => {
     const price = product.prices.find((p) => p.country === profile.country)!;
@@ -79,6 +85,9 @@ export function rankProducts(products: Product[], profile: UserProfile, dose: Do
     let fit = 1;
     const managesGlucose =
       profile.conditions.includes("diabetes") || (profile.labs.hba1cPercent ?? 0) >= 5.7;
+    if (!managesGlucose && product.sugarPerServingG >= 5) {
+      reasons.push(`${product.sugarPerServingG} g sugar per serving — useful energy for long sessions, but it adds up`);
+    }
     if (managesGlucose) {
       if (product.sugarPerServingG <= 2) reasons.push("Low sugar — suits blood-sugar management");
       else {
@@ -100,7 +109,7 @@ export function rankProducts(products: Product[], profile: UserProfile, dose: Do
     return {
       product,
       price,
-      servingsPerDay: servingsFor(dose, product),
+      servingsPerDose: servingsFor(dose, product),
       score: Math.round(score),
       costPerDay: round2(costPerDay),
       costPerMonth: round2(costPerMonth),
@@ -113,10 +122,23 @@ export function rankProducts(products: Product[], profile: UserProfile, dose: Do
 }
 
 function qualityOf(product: Product): { score: number; reason?: string } {
-  if (product.form.startsWith("creatine")) {
-    return product.form === "creatine_monohydrate"
-      ? { score: 1, reason: "Creatine monohydrate — the most researched form" }
-      : { score: 0.3, reason: "Less-researched creatine form; no proven advantage over monohydrate" };
+  switch (product.supplementSlug) {
+    case "creatine":
+      return product.form === "creatine_monohydrate"
+        ? { score: 1, reason: "Creatine monohydrate — the most researched form" }
+        : { score: 0.3, reason: "Less-researched creatine form; no proven advantage over monohydrate" };
+    case "vitamin_d":
+      return product.form === "vitamin_d3"
+        ? { score: 1, reason: "Vitamin D3 — raises blood levels better than D2" }
+        : { score: 0.5, reason: "Vitamin D2 — works, but D3 raises levels more" };
+    case "omega_3":
+      return product.form === "algae_oil"
+        ? { score: 1, reason: "Algae oil — plant-based EPA/DHA" }
+        : { score: 1, reason: "Fish oil with EPA + DHA" };
+    case "protein":
+      break;
+    default:
+      return { score: 0.7 };
   }
   const ratio = product.activePerServingG / product.servingSizeG;
   if (ratio >= 0.8) return { score: 1, reason: `${Math.round(ratio * 100)}% protein by weight` };

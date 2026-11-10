@@ -38,3 +38,13 @@ describe("share links", () => {
     expect(marketplaceLabel("not a url")).toBe("Where to buy");
   });
 });
+
+describe("own history links", () => {
+  it("marks links opened from history so they don't show the shared banner", async () => {
+    const { isOwnLink } = await import("@/lib/share");
+    const url = shareUrl("https://x.example", profile, { mine: true });
+    expect(isOwnLink(new URL(url).hash)).toBe(true);
+    expect(readSharedProfile(new URL(url).hash)).not.toBeNull();
+    expect(isOwnLink(new URL(shareUrl("https://x.example", profile)).hash)).toBe(false);
+  });
+});

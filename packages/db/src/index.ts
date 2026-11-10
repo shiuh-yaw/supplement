@@ -104,7 +104,12 @@ export async function loadKnowledgeBase(options: LoadOptions = {}): Promise<Load
     })),
   }));
 
-  return { kb: { supplements, rules, products }, problems };
+  // A supplement is only offered once at least one of its recommend rules is live,
+  // so new supplements stay hidden until a reviewer approves them.
+  const recommendable = new Set(rules.filter((r) => r.effect === "recommend").map((r) => r.supplementSlug));
+  const visible = supplements.filter((s) => recommendable.has(s.slug));
+
+  return { kb: { supplements: visible, rules, products }, problems };
 }
 
 export async function writeAudit(entry: {
