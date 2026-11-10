@@ -93,6 +93,22 @@ opened during research, so the seed adds them **inactive** with notes starting `
 them. Check each one on the shop page, correct it, and tick *Active*. Prices for SG/PH/TH/ID were also added to a few
 Malaysian products sold there.
 
+## Optional accounts (off by default)
+
+People can create an account to see their saved checks on other devices. It's **off** until the web service has
+`ACCOUNTS_ENABLED=true`, `ACCOUNTS_SECRET` (32+ characters), `ACCOUNTS_ENCRYPTION_KEY` (`openssl rand -base64 32`) and
+`PUBLIC_URL` (the site's address; passkeys are bound to its hostname, so changing domain means people sign up again).
+
+- **No email, name or password.** Sign-in is by passkey (fingerprint, face or phone PIN), which syncs through iCloud
+  Keychain or Google Password Manager. Nothing to phish or leak.
+- **Explicit consent** naming what is stored and where (Singapore) before the account is created; the consent version
+  and time are recorded.
+- **Encrypted:** each saved check is AES-256-GCM encrypted with `ACCOUNTS_ENCRYPTION_KEY`, bound to its account. Keep
+  the key safe: if it's lost, saved checks can't be read; if it leaks, rotate it (old checks then need re-syncing).
+- **Rights:** download everything as JSON (`/api/account/export`) and delete the account and all its checks at once.
+- **Before switching on:** a reviewed privacy notice, a named data protection officer (Malaysia PDPA), a 72-hour
+  breach plan, and confirmation that storing health data in Singapore suits each country's transfer rules.
+
 ## Affiliate links
 
 Buy links on the results page go through `/go/<productId>?c=<country>`. That route looks the link up in the catalog

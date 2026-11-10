@@ -2,8 +2,8 @@ import type { RecommendationResult, UserProfileInput } from "@supplement/engine"
 import { en, type Messages } from "./i18n/messages";
 
 /**
- * Saved checks live only in this browser (localStorage). Nothing is sent to our
- * servers, which keeps the "we don't store your health data" promise.
+ * Saved checks live in this browser (localStorage). Nothing is sent to our servers
+ * unless the person creates an optional account and syncs (see lib/account).
  */
 const KEY = "sukat.history.v1";
 const MAX = 20;
@@ -55,6 +55,16 @@ export function saveCheck(profile: UserProfileInput, result: RecommendationResul
   };
   return write([entry, ...loadHistory()]);
 }
+
+/** Union of two histories by id, newest first, capped at the local maximum. */
+export function mergeHistory(local: HistoryEntry[], remote: HistoryEntry[]): HistoryEntry[] {
+  const byId = new Map<string, HistoryEntry>();
+  for (const e of [...local, ...remote]) if (!byId.has(e.id)) byId.set(e.id, e);
+  return [...byId.values()].sort((a, b) => b.savedAt.localeCompare(a.savedAt)).slice(0, MAX);
+}
+
+/** Replaces this device's history (used after syncing with an account). */
+export const replaceHistory = (entries: HistoryEntry[]) => write(entries);
 
 export const deleteCheck = (id: string) => write(loadHistory().filter((e) => e.id !== id));
 export const clearHistory = () => write([]);

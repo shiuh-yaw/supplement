@@ -190,3 +190,44 @@ model OutboundClick {
 
   @@index([createdAt])
 }
+
+/// Optional user account (off unless ACCOUNTS_ENABLED=true). No email, name or password:
+/// sign-in is by passkey only. Created only after explicit consent.
+model Account {
+  id             String       @id @default(cuid())
+  /// Version of the consent text the person agreed to, e.g. "2026-11-10"
+  consentVersion String
+  consentAt      DateTime
+  createdAt      DateTime     @default(now())
+  lastSeenAt     DateTime     @default(now())
+  passkeys       Passkey[]
+  checks         SavedCheck[]
+}
+
+model Passkey {
+  /// WebAuthn credential ID (base64url)
+  id         String   @id
+  account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId  String
+  publicKey  Bytes
+  counter    Int      @default(0)
+  transports String[]
+  createdAt  DateTime @default(now())
+
+  @@index([accountId])
+}
+
+/// A saved check, encrypted with AES-256-GCM (ACCOUNTS_ENCRYPTION_KEY) before it reaches the database.
+model SavedCheck {
+  id        String   @id @default(cuid())
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId String
+  /// The id the browser gave the check, so devices can merge without duplicates
+  clientId  String
+  savedAt   DateTime
+  /// iv (12 bytes) + auth tag (16 bytes) + ciphertext
+  payload   Bytes
+  createdAt DateTime @default(now())
+
+  @@unique([accountId, clientId])
+}

@@ -31,7 +31,17 @@ export function HistoryView() {
   const m = msg.history;
   const date = (iso: string) => new Date(iso).toLocaleDateString(tag, { day: "numeric", month: "short", year: "numeric" });
   const [entries, setEntries] = useState<HistoryEntry[] | null>(null);
+  const [accountsOn, setAccountsOn] = useState(false);
   useEffect(() => setEntries(loadHistory()), []);
+  useEffect(() => {
+    fetch("/api/account")
+      .then((r) => r.json())
+      .then((d: { enabled?: boolean }) => setAccountsOn(Boolean(d.enabled)))
+      .catch(() => setAccountsOn(false));
+  }, []);
+  const syncLink = accountsOn ? (
+    <Link href="/account" className="text-sm font-medium text-brand-700 underline">{msg.account.link}</Link>
+  ) : null;
 
   if (entries === null) return null;
   if (entries.length === 0) {
@@ -40,6 +50,7 @@ export function HistoryView() {
         <h1 className="text-2xl font-bold">{m.title}</h1>
         <p className="text-slate-600">{m.empty}</p>
         <Link href="/check" className="btn-primary">{m.startCheck}</Link>
+        {syncLink && <p>{syncLink}</p>}
       </div>
     );
   }
@@ -56,6 +67,7 @@ export function HistoryView() {
         <div>
           <h1 className="text-2xl font-bold">{m.title}</h1>
           <p className="text-sm text-slate-600">{m.savedOnly}</p>
+          {syncLink}
         </div>
         <Link href="/check" className="btn-primary">{m.newCheck}</Link>
       </div>
