@@ -1,3 +1,5 @@
+import { groupDigits } from "./dosing";
+import { msgs, unitLabel, type EngineMessages, type Locale } from "./i18n";
 import type { Dose, Product, RankedProduct, UserProfile } from "./types";
 
 /** Forms that still contain meaningful lactose. Isolates are usually <1 g/serving. */
@@ -8,32 +10,34 @@ export interface FilterResult {
   excluded: { product: Product; reason: string }[];
 }
 
-export function filterProducts(products: Product[], profile: UserProfile): FilterResult {
+export function filterProducts(products: Product[], profile: UserProfile, locale: Locale = "en"): FilterResult {
+  const m = msgs(locale);
   const eligible: Product[] = [];
   const excluded: FilterResult["excluded"] = [];
 
   for (const product of products) {
-    const reason = exclusionReason(product, profile);
+    const reason = exclusionReason(product, profile, m);
     if (reason) excluded.push({ product, reason });
     else eligible.push(product);
   }
   return { eligible, excluded };
 }
 
-function exclusionReason(product: Product, profile: UserProfile): string | null {
-  if (!product.prices.some((p) => p.country === profile.country)) return "Not sold in your country";
+function exclusionReason(product: Product, profile: UserProfile, m: EngineMessages): string | null {
+  if (!product.prices.some((p) => p.country === profile.country)) return m.notSold;
   const allergen = product.allergens.find((a) => profile.allergies.includes(a));
-  if (allergen) return `Contains ${allergen.replace("_", " ")}`;
-  if (profile.diet === "vegan" && !product.vegan) return "Not confirmed vegan";
-  if (profile.lactoseIntolerant && HIGH_LACTOSE_FORMS.has(product.form)) return "Contains lactose";
-  if (profile.halalRequired && !product.halalCertified) return "Not confirmed halal";
+  if (allergen) return m.contains(m.allergens[allergen] ?? allergen);
+  if (profile.diet === "vegan" && !product.vegan) return m.notVegan;
+  if (profile.lactoseIntolerant && HIGH_LACTOSE_FORMS.has(product.form)) return m.lactose;
+  if (profile.halalRequired && !product.halalCertified) return m.notHalal;
   return null;
 }
 
 const WEIGHTS = { testing: 35, cost: 35, quality: 15, fit: 15 } as const;
 
-export function rankProducts(products: Product[], profile: UserProfile, dose: Dose): RankedProduct[] {
-  const eligible = filterProducts(products, profile).eligible.filter((p) => !tooStrong(dose, p));
+export function rankProducts(products: Product[], profile: UserProfile, dose: Dose, locale: Locale = "en"): RankedProduct[] {
+  const m = msgs(locale);
+  const eligible = filterProducts(products, profile, locale).eligible.filter((p) => !tooStrong(dose, p));
   if (eligible.length === 0) return [];
 
   // Use the middle of the dose range for cost estimates, averaged per day.
@@ -63,19 +67,19 @@ export function rankProducts(products: Product[], profile: UserProfile, dose: Do
     // 1. Independent testing for contaminants / banned substances.
     if (product.certifications.length > 0) {
       score += WEIGHTS.testing;
-      reasons.push(`Third-party tested (${product.certifications.join(", ")})`);
+      reasons.push(m.tested(product.certifications.join(", ")));
     } else {
-      reasons.push("No third-party testing certification on record");
+      reasons.push(m.noTesting);
     }
 
     // 2. Value: cost per gram of the active ingredient, relative to alternatives.
     const valueScore =
       priciest === cheapest ? 1 : 1 - (costPerActiveGram - cheapest) / (priciest - cheapest);
     score += WEIGHTS.cost * valueScore;
-    if (valueScore >= 0.8) reasons.push("Among the best value per gram");
+    if (valueScore >= 0.8) reasons.push(m.bestValue);
 
     // 3. Formulation quality.
-    const qualityScore = qualityOf(product);
+    const qualityScore = qualityOf(product, m);
     score += WEIGHTS.quality * qualityScore.score;
     if (qualityScore.reason) reasons.push(qualityScore.reason);
 
@@ -86,29 +90,33 @@ export function rankProducts(products: Product[], profile: UserProfile, dose: Do
     const managesGlucose =
       profile.conditions.includes("diabetes") || (profile.labs.hba1cPercent ?? 0) >= 5.7;
     if (!managesGlucose && product.sugarPerServingG >= 5) {
-      reasons.push(`${product.sugarPerServingG} g sugar per serving — useful energy for long sessions, but it adds up`);
+      reasons.push(m.sugarEnergy(product.sugarPerServingG));
     }
     if (managesGlucose) {
-      if (product.sugarPerServingG <= 2) reasons.push("Low sugar — suits blood-sugar management");
+      if (product.sugarPerServingG <= 2) reasons.push(m.lowSugar);
       else {
         fit -= 0.6;
-        reasons.push(`${product.sugarPerServingG} g sugar per serving — not ideal for blood-sugar control`);
+        reasons.push(m.sugarBad(product.sugarPerServingG));
       }
     }
     if (withinBudget === false) {
       fit -= 0.6;
-      reasons.push("Above your monthly budget");
+      reasons.push(m.overBudget);
     }
     score += WEIGHTS.fit * Math.max(fit, 0);
 
-    if (product.halalCertified) reasons.push("Halal certified");
+    if (product.halalCertified) reasons.push(m.halal);
     if (exceedsDose(dose, product)) {
       reasons.push(
-        `One serving has ${product.activePerServingG.toLocaleString("en")} ${dose.unit} — more than the ${dose.max.toLocaleString("en")} ${dose.unit} suggested`,
+        m.moreThanSuggested(
+          groupDigits(String(product.activePerServingG), locale),
+          groupDigits(String(dose.max), locale),
+          unitLabel(dose.unit, locale),
+        ),
       );
     }
     if (profile.lactoseIntolerant && product.form === "whey_isolate") {
-      reasons.push("Isolate — usually under 1 g lactose per serving; start with a small dose");
+      reasons.push(m.isolateLactose);
     }
 
     return {
@@ -126,20 +134,16 @@ export function rankProducts(products: Product[], profile: UserProfile, dose: Do
   return ranked.sort((a, b) => b.score - a.score || a.costPerDay - b.costPerDay);
 }
 
-function qualityOf(product: Product): { score: number; reason?: string } {
+function qualityOf(product: Product, m: EngineMessages): { score: number; reason?: string } {
   switch (product.supplementSlug) {
     case "creatine":
       return product.form === "creatine_monohydrate"
-        ? { score: 1, reason: "Creatine monohydrate — the most researched form" }
-        : { score: 0.3, reason: "Less-researched creatine form; no proven advantage over monohydrate" };
+        ? { score: 1, reason: m.creatineMono }
+        : { score: 0.3, reason: m.creatineOther };
     case "vitamin_d":
-      return product.form === "vitamin_d3"
-        ? { score: 1, reason: "Vitamin D3 — raises blood levels better than D2" }
-        : { score: 0.5, reason: "Vitamin D2 — works, but D3 raises levels more" };
+      return product.form === "vitamin_d3" ? { score: 1, reason: m.vitD3 } : { score: 0.5, reason: m.vitD2 };
     case "omega_3":
-      return product.form === "algae_oil"
-        ? { score: 1, reason: "Algae oil — plant-based EPA/DHA" }
-        : { score: 1, reason: "Fish oil with EPA + DHA" };
+      return product.form === "algae_oil" ? { score: 1, reason: m.algaeOil } : { score: 1, reason: m.fishOil };
     case "protein":
       break;
     default:
@@ -147,9 +151,10 @@ function qualityOf(product: Product): { score: number; reason?: string } {
   }
   if (!(product.servingSizeG > 0)) return { score: 0.6 };
   const ratio = product.activePerServingG / product.servingSizeG;
-  if (ratio >= 0.8) return { score: 1, reason: `${Math.round(ratio * 100)}% protein by weight` };
-  if (ratio >= 0.7) return { score: 0.6, reason: `${Math.round(ratio * 100)}% protein by weight` };
-  return { score: 0.2, reason: `Only ${Math.round(ratio * 100)}% protein by weight (lots of filler)` };
+  const pct = Math.round(ratio * 100);
+  if (ratio >= 0.8) return { score: 1, reason: m.proteinPct(pct) };
+  if (ratio >= 0.7) return { score: 0.6, reason: m.proteinPct(pct) };
+  return { score: 0.2, reason: m.proteinPctLow(pct) };
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;

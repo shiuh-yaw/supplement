@@ -1,6 +1,7 @@
 import { evaluateCondition } from "./conditions";
 import { computeDose } from "./dosing";
 import { filterProducts, rankProducts } from "./ranking";
+import { msgs, type Locale } from "./i18n";
 import type {
   KnowledgeBase,
   Notice,
@@ -12,14 +13,18 @@ import type {
 } from "./types";
 import { userProfileSchema } from "./types";
 
-export const DISCLAIMER =
-  "This is general education, not medical advice. It doesn't diagnose or treat any condition. " +
-  "Talk to your doctor, dietitian or pharmacist before starting a supplement — especially if you have a " +
-  "medical condition, take medication, or are pregnant or breastfeeding.";
+export const DISCLAIMER = msgs("en").disclaimer;
+
+export interface RecommendOptions {
+  /** Language for the text the engine writes. KB content must already be in this language. */
+  locale?: Locale;
+}
 
 const toNotice = (rule: Rule): Notice => ({ ruleId: rule.id, message: rule.message });
 
-export function recommend(input: UserProfileInput, kb: KnowledgeBase): RecommendationResult {
+export function recommend(input: UserProfileInput, kb: KnowledgeBase, options: RecommendOptions = {}): RecommendationResult {
+  const locale = options.locale ?? "en";
+  const m = msgs(locale);
   const profile: UserProfile = userProfileSchema.parse(input);
 
   const fired = kb.rules.filter((rule) => evaluateCondition(profile, rule.condition));
@@ -61,7 +66,7 @@ export function recommend(input: UserProfileInput, kb: KnowledgeBase): Recommend
       return {
         ...base,
         status: "blocked",
-        reasons: alreadyTaking ? ["You told us you take this now. Please check with your doctor before continuing."] : [],
+        reasons: alreadyTaking ? [m.alreadyBlocked] : [],
       };
     }
 
@@ -69,30 +74,25 @@ export function recommend(input: UserProfileInput, kb: KnowledgeBase): Recommend
       return {
         ...base,
         reasons: [
-          alreadyTaking
-            ? "You take this now, but nothing in your answers shows you need it. Ask your doctor or pharmacist whether to continue."
-            : "Not indicated for your goal and profile.",
+          alreadyTaking ? m.alreadyNotNeeded : m.notIndicated,
         ],
       };
     }
 
     const reasons = recommendRules.map((r) => r.message);
-    if (alreadyTaking) reasons.unshift("You already take this — keep going, and check your product gives the amount below.");
-    const outcome = computeDose(supplement.dosing, profile);
+    if (alreadyTaking) reasons.unshift(m.alreadyTaking);
+    const outcome = computeDose(supplement.dosing, profile, locale);
     if (outcome.kind === "not_needed") {
       return { ...base, status: "not_needed", reasons: [...reasons, ...outcome.reasons] };
     }
 
     const candidates = kb.products.filter((p) => p.supplementSlug === supplement.slug);
-    const products = rankProducts(candidates, profile, outcome.dose);
+    const products = rankProducts(candidates, profile, outcome.dose, locale);
     let productsNote: string | null = null;
     if (products.length === 0) {
-      const { excluded } = filterProducts(candidates, profile);
+      const { excluded } = filterProducts(candidates, profile, locale);
       const why = [...new Set(excluded.map((e) => e.reason.toLowerCase()))];
-      productsNote =
-        candidates.length === 0
-          ? "No products in our catalog yet."
-          : `No catalog products match your needs (${why.join("; ")}).`;
+      productsNote = candidates.length === 0 ? m.noProducts : m.noMatch(why.join("; "));
     }
 
     return {
@@ -105,5 +105,5 @@ export function recommend(input: UserProfileInput, kb: KnowledgeBase): Recommend
     };
   });
 
-  return { profile, generalBlocks, generalCautions, items, disclaimer: DISCLAIMER };
+  return { profile, generalBlocks, generalCautions, items, disclaimer: m.disclaimer };
 }
