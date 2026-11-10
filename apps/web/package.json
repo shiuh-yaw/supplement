@@ -6,7 +6,8 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p ${PORT:-3000}",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@supplement/db": "workspace:*",
@@ -22,6 +23,7 @@
     "@types/react-dom": "19.1.11",
     "tailwindcss": "4.3.5",
     "typescript": "5.9.3",
-    "dotenv": "17.4.2"
+    "dotenv": "17.4.2",
+    "vitest": "3.2.7"
   }
 }

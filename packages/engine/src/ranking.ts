@@ -100,6 +100,7 @@ export function rankProducts(products: Product[], profile: UserProfile, dose: Do
     return {
       product,
       price,
+      servingsPerDay: servingsFor(dose, product),
       score: Math.round(score),
       costPerDay: round2(costPerDay),
       costPerMonth: round2(costPerMonth),
@@ -124,3 +125,12 @@ function qualityOf(product: Product): { score: number; reason?: string } {
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Servings needed per day, rounded to the nearest half serving (at least ½). */
+export function servingsFor(dose: Dose, product: Product): { min: number; max: number } {
+  const half = (n: number) => Math.max(0.5, Math.round(n * 2) / 2);
+  return {
+    min: half(dose.min / product.activePerServingG),
+    max: half(dose.max / product.activePerServingG),
+  };
+}

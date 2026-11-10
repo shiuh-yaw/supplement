@@ -239,6 +239,8 @@ export interface RankedProduct {
   costPerDay: number;
   costPerMonth: number;
   withinBudget: boolean | null;
+  /** How many servings (scoops / capsules) of this product cover the dose each day. */
+  servingsPerDay: { min: number; max: number };
   reasons: string[];
 }
 

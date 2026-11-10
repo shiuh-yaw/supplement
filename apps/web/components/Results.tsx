@@ -1,7 +1,22 @@
 "use client";
 
-import type { Notice, RankedProduct, RecommendationResult, SupplementRecommendation } from "@supplement/engine";
-import { GOAL_LABELS } from "@supplement/engine";
+import { useState } from "react";
+import {
+  ALLERGEN_LABELS,
+  CONDITION_LABELS,
+  COUNTRY_LABELS,
+  DIET_LABELS,
+  GOAL_LABELS,
+  MEDICATION_LABELS,
+  fromUmolL,
+  type Notice,
+  type RankedProduct,
+  type RecommendationResult,
+  type SupplementRecommendation,
+  type UserProfileInput,
+} from "@supplement/engine";
+import { APP_NAME } from "@/lib/site";
+import { marketplaceLabel, shareUrl } from "@/lib/share";
 
 const money = (amount: number, currency: string) =>
   new Intl.NumberFormat("en", {
@@ -9,6 +24,8 @@ const money = (amount: number, currency: string) =>
     currency,
     maximumFractionDigits: currency === "IDR" || currency === "VND" ? 0 : 2,
   }).format(amount);
+
+const servingsText = (n: number) => (n === 0.5 ? "½" : Number.isInteger(n) ? String(n) : `${Math.floor(n)}½`);
 
 const STATUS: Record<SupplementRecommendation["status"], { label: string; cls: string }> = {
   recommended: { label: "Recommended", cls: "bg-brand-100 text-brand-700" },
@@ -30,9 +47,14 @@ function NoticeList({ items, tone }: { items: Notice[]; tone: "red" | "amber" })
 }
 
 function ProductRow({ ranked, rank }: { ranked: RankedProduct; rank: number }) {
-  const { product, price } = ranked;
+  const { product, price, servingsPerDay } = ranked;
+  const servings =
+    servingsPerDay.min === servingsPerDay.max
+      ? servingsText(servingsPerDay.min)
+      : `${servingsText(servingsPerDay.min)}–${servingsText(servingsPerDay.max)}`;
+  const one = servingsPerDay.max <= 1;
   return (
-    <li className="rounded-xl border border-slate-200 p-4">
+    <li className="rounded-xl border border-slate-200 p-4 break-inside-avoid">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="text-xs font-medium text-slate-500">#{rank} · {product.brand}</p>
@@ -43,16 +65,20 @@ function ProductRow({ ranked, rank }: { ranked: RankedProduct; rank: number }) {
           <p className="text-xs text-slate-500">≈ {money(ranked.costPerMonth, price.currency)}/month at your dose</p>
         </div>
       </div>
+      <p className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-700">
+        Take <strong>{servings} {one ? "serving" : "servings"} a day</strong>
+        <span className="text-slate-600"> · 1 serving = {product.servingSizeG} g, with {product.activePerServingG} g {product.supplementSlug === "creatine" ? "creatine" : "protein"}</span>
+      </p>
       <ul className="mt-2 flex flex-wrap gap-1.5">
         {ranked.reasons.map((r) => (
           <li key={r} className="rounded-lg bg-slate-100 px-2 py-0.5 text-xs text-slate-700">{r}</li>
         ))}
       </ul>
-      <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
         <span>Match score {ranked.score}/100</span>
         {price.url && (
-          <a href={price.url} target="_blank" rel="noopener noreferrer sponsored" className="font-medium text-brand-700 underline">
-            Where to buy
+          <a href={price.url} target="_blank" rel="noopener noreferrer sponsored" className="btn-ghost px-3 py-1.5 text-xs print:hidden">
+            {marketplaceLabel(price.url)} ↗
           </a>
         )}
       </div>
@@ -62,8 +88,9 @@ function ProductRow({ ranked, rank }: { ranked: RankedProduct; rank: number }) {
 
 function SupplementCard({ item }: { item: SupplementRecommendation }) {
   const status = STATUS[item.status];
+  const top = item.products.slice(0, 3);
   return (
-    <article className="card space-y-4">
+    <article className="card space-y-4 break-inside-avoid print:shadow-none">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-lg font-semibold">{item.supplement.name}</h3>
         <div className="flex items-center gap-2">
@@ -104,10 +131,17 @@ function SupplementCard({ item }: { item: SupplementRecommendation }) {
       {item.status === "recommended" && (
         <div>
           <p className="mb-2 text-sm font-medium">Products that fit you</p>
-          {item.products.length > 0 ? (
-            <ol className="space-y-2">
-              {item.products.slice(0, 3).map((p, i) => <ProductRow key={p.product.id} ranked={p} rank={i + 1} />)}
-            </ol>
+          {top.length > 0 ? (
+            <>
+              <ol className="space-y-2">
+                {top.map((p, i) => <ProductRow key={p.product.id} ranked={p} rank={i + 1} />)}
+              </ol>
+              {top.some((p) => p.price.url) && (
+                <p className="mt-2 text-xs text-slate-500 print:hidden">
+                  Shop links may earn us a small commission at no cost to you. It never changes the ranking.
+                </p>
+              )}
+            </>
           ) : (
             <p className="text-sm text-slate-500">{item.productsNote}</p>
           )}
@@ -130,29 +164,138 @@ function SupplementCard({ item }: { item: SupplementRecommendation }) {
   );
 }
 
-export function Results({ result, onRestart }: { result: RecommendationResult; onRestart: () => void }) {
+/** Printed at the top of "Save PDF for my doctor": what the person told us. */
+function AnswersSummary({ profile }: { profile: RecommendationResult["profile"] }) {
+  const p = profile;
+  const list = (items: string[]) => (items.length ? items.join(", ") : "None reported");
+  const labs: string[] = [];
+  if (p.labs.egfr !== undefined) labs.push(`eGFR ${p.labs.egfr} mL/min/1.73m²`);
+  if (p.labs.creatinineUmolL !== undefined)
+    labs.push(`Creatinine ${p.labs.creatinineUmolL} µmol/L (${fromUmolL("creatinineUmolL", p.labs.creatinineUmolL, "mgdl")} mg/dL)`);
+  if (p.labs.altUL !== undefined) labs.push(`ALT ${p.labs.altUL} U/L`);
+  if (p.labs.uricAcidUmolL !== undefined)
+    labs.push(`Uric acid ${p.labs.uricAcidUmolL} µmol/L (${fromUmolL("uricAcidUmolL", p.labs.uricAcidUmolL, "mgdl")} mg/dL)`);
+  if (p.labs.hba1cPercent !== undefined) labs.push(`HbA1c ${p.labs.hba1cPercent}%`);
+
+  const rows: [string, string][] = [
+    ["Age / sex", `${p.age}, ${p.sex}`],
+    ["Weight", `${p.weightKg} kg`],
+    ["Country", COUNTRY_LABELS[p.country]],
+    ["Goal", `${GOAL_LABELS[p.goal]}, ${p.trainingDaysPerWeek} workouts/week`],
+    ["Diet", `${DIET_LABELS[p.diet]}${p.dietaryProteinG !== undefined ? `, ~${Math.round(p.dietaryProteinG)} g protein/day from food` : ""}`],
+    ["Allergies", list(p.allergies.map((a) => ALLERGEN_LABELS[a]))],
+    ["Conditions", list(p.conditions.map((c) => CONDITION_LABELS[c]))],
+    ["Medications", list(p.medications.map((m) => MEDICATION_LABELS[m]))],
+    ["Lab values", labs.length ? labs.join("; ") : "None entered"],
+  ];
+  return (
+    <section className="hidden rounded-xl border border-slate-300 p-4 text-sm print:block">
+      <h2 className="mb-2 font-semibold">Answers this plan is based on</h2>
+      <dl className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1">
+        {rows.map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt className="text-slate-500">{k}</dt>
+            <dd>{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+function ShareBar({ result, profile }: { result: RecommendationResult; profile: UserProfileInput }) {
+  const [copied, setCopied] = useState(false);
+  const url = shareUrl(window.location.origin, profile);
+  const summary = result.items
+    .filter((i) => i.status === "recommended" || i.status === "blocked")
+    .map((i) => `• ${i.supplement.name}: ${i.status === "recommended" && i.dose ? i.dose.text : "see a doctor first"}`)
+    .join("\n");
+  const text = `My ${APP_NAME} supplement plan:\n${summary || "• No supplements needed right now"}\n\nFull plan: ${url}`;
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      window.prompt("Copy this link:", url);
+    }
+  }
+
+  async function nativeShare() {
+    try {
+      await navigator.share({ title: `${APP_NAME} supplement plan`, text, url });
+    } catch {
+      /* cancelled */
+    }
+  }
+
+  return (
+    <section className="card space-y-3 print:hidden">
+      <h2 className="font-semibold">Save or share</h2>
+      <div className="flex flex-wrap gap-2">
+        <a className="btn bg-[#25D366] text-white hover:bg-[#1ebe5b]" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer">
+          Share on WhatsApp
+        </a>
+        {typeof navigator !== "undefined" && "share" in navigator && (
+          <button type="button" className="btn-ghost" onClick={nativeShare}>More apps…</button>
+        )}
+        <button type="button" className="btn-ghost" onClick={copy}>{copied ? "Link copied ✓" : "Copy link"}</button>
+        <button type="button" className="btn-ghost" onClick={() => window.print()}>Save PDF for my doctor</button>
+      </div>
+      <p className="text-xs text-slate-500">
+        The link contains the answers you gave, including any health details, so only share it with people you trust.
+        We don&apos;t store it. To save a PDF, choose “Save as PDF” in the print window.
+      </p>
+    </section>
+  );
+}
+
+export function Results({
+  result,
+  profile,
+  shared,
+  onRestart,
+}: {
+  result: RecommendationResult;
+  profile: UserProfileInput;
+  shared: boolean;
+  onRestart: () => void;
+}) {
   const order = { recommended: 0, blocked: 1, not_needed: 2, not_recommended: 3 } as const;
   const items = [...result.items].sort((a, b) => order[a.status] - order[b.status]);
+  const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      {shared && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50 p-4 text-sm text-brand-700 print:hidden">
+          <span>Someone shared these results with you. They&apos;re based on <strong>their</strong> answers, not yours.</span>
+          <button type="button" className="btn-primary" onClick={onRestart}>Do my own check</button>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Your supplement plan</h1>
+          <h1 className="text-2xl font-bold">{shared ? "Shared supplement plan" : "Your supplement plan"}</h1>
           <p className="text-sm text-slate-600">
             Goal: {GOAL_LABELS[result.profile.goal]} · {result.profile.weightKg} kg · {result.profile.trainingDaysPerWeek} workouts/week
           </p>
+          <p className="hidden text-xs text-slate-500 print:block">Prepared with {APP_NAME} on {today}</p>
         </div>
-        <div className="flex gap-2">
-          <button type="button" className="btn-ghost" onClick={() => window.print()}>Print for my doctor</button>
-          <button type="button" className="btn-ghost" onClick={onRestart}>Start over</button>
-        </div>
+        {!shared && (
+          <button type="button" className="btn-ghost print:hidden" onClick={onRestart}>Start over</button>
+        )}
       </div>
+
+      <AnswersSummary profile={result.profile} />
 
       <NoticeList items={result.generalBlocks} tone="red" />
       <NoticeList items={result.generalCautions} tone="amber" />
 
       {items.map((item) => <SupplementCard key={item.supplement.slug} item={item} />)}
+
+      {!shared && <ShareBar result={result} profile={profile} />}
 
       <p className="rounded-xl bg-slate-100 p-4 text-xs text-slate-600">{result.disclaimer}</p>
     </div>

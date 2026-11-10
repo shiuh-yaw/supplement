@@ -134,7 +134,7 @@ export function ProductForm({
             <div key={c} className="grid grid-cols-[110px_120px_1fr] items-center gap-2 text-sm">
               <span>{label}</span>
               <input name={`price_${c}`} type="number" step="any" className="input" placeholder={CURRENCY_BY_COUNTRY[c]} defaultValue={priceFor(c)?.price} />
-              <input name={`url_${c}`} className="input" placeholder="https://… (where to buy)" defaultValue={priceFor(c)?.url ?? ""} />
+              <input name={`url_${c}`} className="input" placeholder="Shopee / Lazada / store link (https://…)" defaultValue={priceFor(c)?.url ?? ""} />
             </div>
           ))}
         </div>
